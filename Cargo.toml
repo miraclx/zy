@@ -1,0 +1,13 @@
+[package]
+name = "bulan-server"
+authors = ["The Bulan Developers <dev@bulan.io>"]
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = "0.5.17"
+clap = { version = "3.2", features = ["derive"] }
+tokio = { version = "1", features = ["full"] }
+tracing = "0.1.26"
+color-eyre = "0.6.2"
+tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }

@@ -9,19 +9,17 @@
   git clone https://github.com/bulan-io/bulan-server.git
   ```
 
-- Then, build the project.
-
-  ```console
-  cargo build --release
-  ```
-
 ## Usage
 
 - Run the server.
 
   ```console
-  cargo run --release
+  cargo run
   ```
+
+  The server will listen on port `3000` by default, but you can change this by using the `-p, --port [PORT]` option.
+
+  Run `cargo run -- --help` for more options.
 
 ## Contribution
 

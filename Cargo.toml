@@ -1,8 +1,11 @@
 [package]
 name = "bulan-server"
-authors = ["The Bulan Developers <dev@bulan.io>"]
 version = "0.1.0"
+authors = ["The Bulan Developers <dev@bulan.io>"]
 edition = "2021"
+description = "The bulan.io Backend Server"
+repository = "https://github.com/bulan-io/bulan-server"
+license = "MIT OR Apache-2.0"
 
 [dependencies]
 axum = "0.5.17"

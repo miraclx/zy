@@ -30,7 +30,7 @@ async fn init_app() -> Result<()> {
         shutdown_signal: shutdown_tx,
     });
 
-    let server = axum::Server::bind(&([127, 0, 0, 1], args.port).into())
+    let server = axum::Server::bind(&(args.host, args.port).into())
         .serve(routes::load(server_state.clone()).into_make_service())
         .with_graceful_shutdown(async {
             shutdown_signal.recv().await;

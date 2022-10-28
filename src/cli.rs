@@ -12,4 +12,8 @@ pub struct Args {
     /// Sets the port to listen on
     #[clap(short, long, default_value = "3000")]
     pub port: u16,
+
+    /// Sets the address to listen on
+    #[clap(short, long, default_value_t = [127, 0, 0, 1].into())]
+    pub host: std::net::IpAddr,
 }

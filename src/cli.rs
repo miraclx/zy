@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use clap::{AppSettings, Parser};
 
 #[derive(Debug, Parser)]
-#[clap(author, version, about, setting = AppSettings::DeriveDisplayOrder)]
+#[clap(about, version, setting = AppSettings::DeriveDisplayOrder)]
 pub struct Args {
     /// Directory to serve
     #[clap(short, long, default_value = ".")]

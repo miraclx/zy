@@ -12,7 +12,7 @@ pub async fn on_exit(exit_signal: &mpsc::Sender<()>) -> Result<()> {
             let now = std::time::Instant::now();
             if let Some(last_signal_timestamp) = last_signal_timestamp {
                 if now.duration_since(last_signal_timestamp) < std::time::Duration::from_secs(5) {
-                    info!("[signal] Second Ctrl-C received");
+                    info!("[signal] Ctrl-C received, shutting down...");
                     break;
                 }
             }

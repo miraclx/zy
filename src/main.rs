@@ -1,6 +1,6 @@
+use std::path::PathBuf;
 use std::sync::Arc;
 
-use axum::Extension;
 use clap::Parser;
 use color_eyre::eyre::Result;
 use tokio::sync::mpsc;
@@ -12,7 +12,7 @@ mod exit;
 mod routes;
 
 pub struct ServerState {
-    // port: u16,
+    dir: PathBuf,
     shutdown_signal: mpsc::Sender<()>,
 }
 
@@ -23,19 +23,15 @@ async fn init_app() -> Result<()> {
 
     debug!("Args: {:#?}", args);
 
-    let (shutdown_tx, mut shutdown_signal) = mpsc::channel::<()>(1);
+    let (shutdown_tx, mut shutdown_signal) = mpsc::channel(1);
 
     let server_state = Arc::new(ServerState {
-        // port: args.port,
+        dir: args.dir.canonicalize()?,
         shutdown_signal: shutdown_tx,
     });
 
-    let app = routes::load()
-        .layer(Extension(server_state.clone()))
-        .into_make_service();
-
-    let server = axum::Server::bind(&([0; 4], args.port).into())
-        .serve(app)
+    let server = axum::Server::bind(&([127, 0, 0, 1], args.port).into())
+        .serve(routes::load(server_state.clone()).into_make_service())
         .with_graceful_shutdown(async {
             shutdown_signal.recv().await;
             info!("Starting Graceful Shutdown");

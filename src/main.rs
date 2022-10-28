@@ -37,6 +37,7 @@ async fn init_app() -> Result<()> {
             info!("Starting Graceful Shutdown");
         });
 
+    info!("Listening on http://{}:{}", args.host, args.port);
     tokio::select! {
         _ = server => {}
         _ = exit::on_exit(&server_state.shutdown_signal) => {}

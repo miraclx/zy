@@ -1,8 +1,8 @@
 use color_eyre::Result;
-use tokio::{signal, sync::mpsc};
+use tokio::signal;
 use tracing::info;
 
-pub async fn on_exit(exit_signal: &mpsc::Sender<()>) -> Result<()> {
+pub async fn on_signal() -> Result<()> {
     let sigint = async {
         // let mut last_signal_timestamp = None;
 
@@ -63,7 +63,5 @@ pub async fn on_exit(exit_signal: &mpsc::Sender<()>) -> Result<()> {
         _ = sigterm => {}
     }
 
-    exit_signal.send(()).await?;
-    std::future::pending::<()>().await;
     Ok(())
 }

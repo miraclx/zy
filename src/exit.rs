@@ -4,21 +4,24 @@ use tracing::info;
 
 pub async fn on_exit(exit_signal: &mpsc::Sender<()>) -> Result<()> {
     let sigint = async {
-        let mut last_signal_timestamp = None;
+        // let mut last_signal_timestamp = None;
 
-        loop {
-            signal::ctrl_c().await?;
+        // loop {
+        //     signal::ctrl_c().await?;
 
-            let now = std::time::Instant::now();
-            if let Some(last_signal_timestamp) = last_signal_timestamp {
-                if now.duration_since(last_signal_timestamp) < std::time::Duration::from_secs(5) {
-                    info!("[signal] Ctrl-C received, shutting down...");
-                    break;
-                }
-            }
-            info!("[signal] Ctrl-C received, press again to exit");
-            last_signal_timestamp = Some(now);
-        }
+        //     let now = std::time::Instant::now();
+        //     if let Some(last_signal_timestamp) = last_signal_timestamp {
+        //         if now.duration_since(last_signal_timestamp) < std::time::Duration::from_secs(5) {
+        //             info!("[signal] Ctrl-C received, shutting down...");
+        //             break;
+        //         }
+        //     }
+        //     info!("[signal] Ctrl-C received, press again to exit");
+        //     last_signal_timestamp = Some(now);
+        // }
+
+        signal::ctrl_c().await?;
+        info!("[signal] Ctrl-C received");
 
         Result::<()>::Ok(())
     };

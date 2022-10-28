@@ -36,31 +36,10 @@ fn normalize_path<P: AsRef<Path>>(path: P) -> Result<PathBuf, ()> {
     Ok(buf)
 }
 
-fn not_found() -> HttpResponse {
-    HttpResponse::build(StatusCode::NOT_FOUND)
-        .content_type("text/plain; charset=utf-8")
-        .body("Not Found")
-}
-
-fn serve(req: &HttpRequest, path: &Path) -> HttpResponse {
-    let file = match fs::NamedFile::open(path) {
-        Ok(file) => file,
-        Err(_) => return not_found(),
-    };
-
-    file.disable_content_disposition()
-        .prefer_utf8(true)
-        .into_response(&req)
-}
-
-async fn index(
-    req: HttpRequest,
-    path: web::Path<String>,
-    state: web::Data<Arc<ServerState>>,
-) -> HttpResponse {
+fn serve(req: &HttpRequest, path: &str, state: &ServerState) -> Option<HttpResponse> {
     let path = match normalize_path(Path::new(&*path)) {
         Ok(path) => path,
-        Err(_) => return not_found(),
+        Err(_) => return None,
     };
 
     let path = state.dir.join(if path.as_os_str().is_empty() {
@@ -69,10 +48,38 @@ async fn index(
         &path
     });
 
-    serve(&req, &path)
+    let file = match fs::NamedFile::open(path) {
+        Ok(file) => file,
+        Err(_) => return None,
+    };
+
+    Some(
+        file.disable_content_disposition()
+            .prefer_utf8(true)
+            .into_response(&req),
+    )
 }
 
-#[derive(Clone)]
+fn not_found(req: &HttpRequest, state: &ServerState) -> HttpResponse {
+    match serve(req, "404.html", state) {
+        Some(mut resp) => {
+            *resp.status_mut() = StatusCode::NOT_FOUND;
+            resp
+        }
+        None => HttpResponse::build(StatusCode::NOT_FOUND)
+            .content_type("text/plain; charset=utf-8")
+            .body("Not Found"),
+    }
+}
+
+async fn index(
+    req: HttpRequest,
+    path: web::Path<String>,
+    state: web::Data<Arc<ServerState>>,
+) -> HttpResponse {
+    serve(&req, &path, &state).unwrap_or_else(|| not_found(&req, &state))
+}
+
 pub struct ServerState {
     dir: PathBuf,
     // shutdown_signal: mpsc::Sender<()>,

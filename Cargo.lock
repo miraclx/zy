@@ -134,6 +134,7 @@ dependencies = [
  "clap",
  "color-eyre",
  "tokio",
+ "tower",
  "tower-http",
  "tracing",
  "tracing-subscriber",

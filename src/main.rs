@@ -122,22 +122,17 @@ async fn init_app() -> Result<()> {
     let server = HttpServer::new(move || {
         App::new()
             .wrap(middleware::MythianServer)
+            .app_data(web::Data::new(server_state.clone()))
             .service(
-                web::resource("/ping").route(
-                    web::route()
-                        .guard(guard::Any(guard::Get()).or(guard::Head()))
-                        .to(|| async { "pong" }),
-                ),
+                web::resource("/ping")
+                    .guard(guard::Any(guard::Get()).or(guard::Head()))
+                    .to(|| async { "pong" }),
             )
             .service(
                 web::resource("/{path:.*}")
-                    .app_data(web::Data::new(server_state.clone()))
+                    .guard(guard::Any(guard::Get()).or(guard::Head()))
                     .wrap(middleware::Compress::default())
-                    .route(
-                        web::route()
-                            .guard(guard::Any(guard::Get()).or(guard::Head()))
-                            .to(index),
-                    ),
+                    .to(index),
             )
     })
     .disable_signals()

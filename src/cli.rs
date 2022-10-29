@@ -28,7 +28,7 @@ fn addr_from_str(s: &str) -> Result<SocketAddr, AddrParseError> {
 #[clap(about, version, setting = AppSettings::DeriveDisplayOrder)]
 pub struct Args {
     /// Directory to serve
-    #[clap(short, long, default_value = ".")]
+    #[clap(default_value = ".")]
     pub dir: PathBuf,
 
     /// Sets the address to listen on (repeatable)

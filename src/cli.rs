@@ -39,10 +39,9 @@ pub struct Args {
     pub dir: PathBuf,
 
     /// Sets the address to listen on (repeatable)
-    ///
-    /// Valid: `3000`, `127.0.0.1`, `127.0.0.1:3000`.
+    /// Valid: `3000`, `127.0.0.1`, `127.0.0.1:3000`
     #[clap(short, long, value_name = "URI", multiple_occurrences = true)]
-    #[clap(parse(try_from_str = addr_from_str))]
+    #[clap(verbatim_doc_comment, parse(try_from_str = addr_from_str))]
     #[clap(default_value = concat!("127.0.0.1:", DEFAULT_PORT!(str)))]
     pub listen: Vec<SocketAddr>,
 
@@ -50,15 +49,11 @@ pub struct Args {
     #[clap(short, long)]
     pub spa: bool,
 
-    /// Index file to serve
-    ///
-    /// Must be a file in the base directory.
+    /// Index file to serve from the base directory.
     #[clap(short, long, value_name = "FILE", default_value = "index.html")]
     pub index: String,
 
-    /// 404 file to serve
-    ///
-    /// Must be a file in the base directory.
+    /// 404 file to serve from the base directory.
     #[clap(long = "404", value_name = "FILE", default_value = "404.html")]
     pub not_found: String,
 

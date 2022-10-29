@@ -149,6 +149,7 @@ async fn init_app() -> Result<()> {
     tokio::select! {
         _ = server => {}
         _ = exit::on_signal(
+            args.confirm_exit,
             #[cfg(feature = "shutdown-signal")] &mut shutdown_signal,
             |graceful| async move {
                 if graceful {

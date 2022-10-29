@@ -12,6 +12,7 @@ use tracing::info;
 ///
 /// A use-case of this, is to explicitly shutdown the server. Which then cancels this future.
 pub async fn on_signal<F, Fut>(
+    confirm_exit: bool,
     #[cfg(feature = "shutdown-signal")] shutdown_signal: &mut mpsc::Receiver<()>,
     handler: F,
 ) -> Result<()>
@@ -28,8 +29,7 @@ where
     };
 
     let sigint = async {
-        #[cfg(not(debug_assertions))]
-        {
+        if confirm_exit {
             let mut last_signal_timestamp = None;
 
             loop {
@@ -46,10 +46,9 @@ where
                 info!("[signal] Ctrl-C received, press again to exit");
                 last_signal_timestamp = Some(now);
             }
+        } else {
+            signal::ctrl_c().await?;
         }
-
-        #[cfg(debug_assertions)]
-        signal::ctrl_c().await?;
 
         Result::<()>::Ok(())
     };

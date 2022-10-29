@@ -38,4 +38,8 @@ pub struct Args {
     #[clap(parse(try_from_str = addr_from_str))]
     #[clap(default_value = concat!("127.0.0.1:", DEFAULT_PORT!(str)))]
     pub listen: Vec<SocketAddr>,
+
+    /// Require confirmation before exiting on Ctrl+C
+    #[clap(long)]
+    pub confirm_exit: bool,
 }

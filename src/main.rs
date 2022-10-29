@@ -38,10 +38,7 @@ fn normalize_path<P: AsRef<Path>>(path: P) -> Result<PathBuf, ()> {
 }
 
 fn serve(req: &HttpRequest, path: &str, state: &ServerState) -> Option<HttpResponse> {
-    let path = match normalize_path(Path::new(&*path)) {
-        Ok(path) => path,
-        Err(_) => return None,
-    };
+    let path = normalize_path(Path::new(&*path)).ok()?;
 
     let path = state.args.dir.join(if path.as_os_str().is_empty() {
         Path::new(&state.args.index)
@@ -53,10 +50,11 @@ fn serve(req: &HttpRequest, path: &str, state: &ServerState) -> Option<HttpRespo
         debug!(target: "mythian::serve", path=%path.display());
     }
 
-    let file = match fs::NamedFile::open(path) {
-        Ok(file) => file,
-        Err(_) => return None,
-    };
+    if !state.args.follow_links && path.symlink_metadata().ok()?.is_symlink() {
+        return None;
+    }
+
+    let file = fs::NamedFile::open(path).ok()?;
 
     Some(
         file.disable_content_disposition()

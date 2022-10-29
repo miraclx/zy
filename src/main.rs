@@ -37,30 +37,40 @@ fn normalize_path<P: AsRef<Path>>(path: P) -> Result<PathBuf, ()> {
     Ok(buf)
 }
 
-fn serve(req: &HttpRequest, path: &str, state: &ServerState) -> Option<HttpResponse> {
+enum PathSource {
+    Client,
+    Server,
+}
+
+fn serve(
+    req: &HttpRequest,
+    path: &str,
+    source: PathSource,
+    state: &ServerState,
+) -> Option<HttpResponse> {
+    let mut source = source;
     let path = normalize_path(Path::new(&*path)).ok()?;
 
-    let path = state.args.dir.join(if path.as_os_str().is_empty() {
+    let path = if path.as_os_str().is_empty() {
+        source = PathSource::Server;
         Path::new(&state.args.index)
     } else {
         &path
-    });
+    };
+    let path = state.args.dir.join(path);
 
     if state.args.debug {
         debug!(target: "mythian::serve", path=%path.display());
     }
 
-    if !state.args.all
-        && path
-            .file_name()?
-            .to_str()
-            .map_or(false, |s| s.starts_with('.'))
-    {
-        return None;
-    }
+    if let PathSource::Client = source {
+        if !state.args.all && path.file_name()?.to_string_lossy().starts_with('.') {
+            return None;
+        }
 
-    if !state.args.follow_links && path.is_symlink() {
-        return None;
+        if !state.args.follow_links && path.is_symlink() {
+            return None;
+        }
     }
 
     let file = fs::NamedFile::open(path).ok()?;
@@ -86,7 +96,7 @@ async fn index(
         );
     }
 
-    let mut res = serve(&req, &path, &state).unwrap_or_else(|| {
+    let mut res = serve(&req, &path, PathSource::Client, &state).unwrap_or_else(|| {
         if state.args.spa {
             let accepts_html = <header::Accept as header::Header>::parse(&req)
                 .map_or(false, |accept| {
@@ -94,7 +104,7 @@ async fn index(
                 });
             if accepts_html {
                 info!(target: "mythian::serve", "spa routing to {}", state.args.index);
-                match serve(&req, &state.args.index, &state) {
+                match serve(&req, &state.args.index, PathSource::Server, &state) {
                     Some(res) => return res,
                     None => {}
                 }
@@ -103,7 +113,7 @@ async fn index(
         if state.args.debug {
             info!(target: "mythian::serve", "not found, serving {}", state.args.not_found);
         }
-        match serve(&req, &state.args.not_found, &state) {
+        match serve(&req, &state.args.not_found, PathSource::Server, &state) {
             Some(mut resp) => {
                 *resp.status_mut() = StatusCode::NOT_FOUND;
                 resp

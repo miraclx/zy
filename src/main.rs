@@ -122,15 +122,6 @@ async fn init_app() -> Result<()> {
                     Ok(res)
                 }
             })
-        // .service(
-        //     fs::Files::new("/", &args.dir)
-        //         .index_file("index.html")
-        //         .prefer_utf8(true)
-        //         // .path_filter(|path, |)
-        //         .disable_content_disposition()
-        //         .use_hidden_files()
-        //         .show_files_listing(),
-        // )
     })
     .disable_signals()
     .bind((args.host, args.port))?

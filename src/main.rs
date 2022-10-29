@@ -138,6 +138,8 @@ async fn init_app() -> Result<()> {
             |graceful| async move {
                 if graceful {
                     info!("Starting graceful shutdown");
+                } else {
+                    info!("Shutting down immediately");
                 }
                 server_handle.stop(graceful).await;
             }

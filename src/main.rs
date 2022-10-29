@@ -4,7 +4,7 @@ use std::sync::Arc;
 use actix_files as fs;
 use actix_web::dev::Service;
 use actix_web::http::{header, StatusCode};
-use actix_web::{middleware, web, App, HttpServer};
+use actix_web::{guard, middleware, web, App, HttpServer};
 use actix_web::{HttpRequest, HttpResponse};
 use clap::Parser;
 use color_eyre::eyre::Result;
@@ -121,13 +121,22 @@ async fn init_app() -> Result<()> {
 
     let server = HttpServer::new(move || {
         App::new()
-            .route("/ping", web::get().to(|| async { "pong" }))
+            .service(
+                web::resource("/ping").route(
+                    web::route()
+                        .guard(guard::Any(guard::Get()).or(guard::Head()))
+                        .to(|| async { "pong" }),
+                ),
+            )
             .service(
                 web::resource("/{path:.*}")
                     .app_data(web::Data::new(server_state.clone()))
                     .wrap(middleware::Compress::default())
-                    .route(web::get().to(index))
-                    .route(web::head().to(index)),
+                    .route(
+                        web::route()
+                            .guard(guard::Any(guard::Get()).or(guard::Head()))
+                            .to(index),
+                    ),
             )
             .wrap_fn(|req, srv| {
                 let fut = srv.call(req);

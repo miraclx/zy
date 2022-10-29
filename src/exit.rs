@@ -6,6 +6,11 @@ use tokio::signal;
 use tokio::sync::mpsc;
 use tracing::info;
 
+/// A future that never resolves, but will call the handler when it detects a shutdown signal.
+///
+/// Signals: `SIGINT`, `SIGTERM`, `SIGHUP` or explicit `shutdown` call.
+///
+/// A use-case of this, is to explicitly shutdown the server. Which then cancels this future.
 pub async fn on_signal<F, Fut>(
     #[cfg(feature = "shutdown-signal")] shutdown_signal: &mut mpsc::Receiver<()>,
     handler: F,
@@ -23,24 +28,24 @@ where
     };
 
     let sigint = async {
-        // let mut last_signal_timestamp = None;
+        let mut last_signal_timestamp = None;
 
-        // loop {
-        //     signal::ctrl_c().await?;
+        loop {
+            signal::ctrl_c().await?;
 
-        //     let now = std::time::Instant::now();
-        //     if let Some(last_signal_timestamp) = last_signal_timestamp {
-        //         if now.duration_since(last_signal_timestamp) < std::time::Duration::from_secs(5) {
-        //             info!("[signal] Ctrl-C received, shutting down...");
-        //             break;
-        //         }
-        //     }
-        //     info!("[signal] Ctrl-C received, press again to exit");
-        //     last_signal_timestamp = Some(now);
-        // }
+            let now = std::time::Instant::now();
+            if let Some(last_signal_timestamp) = last_signal_timestamp {
+                if now.duration_since(last_signal_timestamp) < std::time::Duration::from_secs(5) {
+                    info!("[signal] Ctrl-C received, shutting down...");
+                    break;
+                }
+            }
+            info!("[signal] Ctrl-C received, press again to exit");
+            last_signal_timestamp = Some(now);
+        }
 
-        signal::ctrl_c().await?;
-        info!("[signal] Ctrl-C received");
+        // signal::ctrl_c().await?;
+        // info!("[signal] Ctrl-C received");
 
         Result::<()>::Ok(())
     };

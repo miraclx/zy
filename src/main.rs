@@ -1,4 +1,5 @@
-use std::path::{Path, PathBuf};
+use std::io;
+use std::path::{Component, Path, PathBuf};
 use std::sync::Arc;
 
 use actix_files as fs;
@@ -19,20 +20,26 @@ mod middleware;
 // /a => a
 // a/../b => b
 // /a/b/../c/./d => a/c/d
-fn normalize_path<P: AsRef<Path>>(path: P) -> Result<PathBuf, ()> {
+// C:\a => ERROR
+fn normalize_path<P: AsRef<Path>>(path: P) -> io::Result<PathBuf> {
     let mut buf = PathBuf::new();
     for c in path.as_ref().components() {
         match c {
-            std::path::Component::Normal(c) => buf.push(c),
-            std::path::Component::ParentDir => {
+            Component::Normal(c) => buf.push(c),
+            Component::ParentDir => {
                 buf.pop();
             }
-            std::path::Component::CurDir | std::path::Component::RootDir => {}
-            _ => return Err(()),
+            Component::CurDir | Component::RootDir => {}
+            _ => {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "prefix is not supported",
+                ))
+            }
         }
     }
     for c in buf.components() {
-        assert!(matches!(c, std::path::Component::Normal(_)));
+        assert!(matches!(c, Component::Normal(_)));
     }
     Ok(buf)
 }

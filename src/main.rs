@@ -44,7 +44,7 @@ fn serve(req: &HttpRequest, path: &str, state: &ServerState) -> Option<HttpRespo
     };
 
     let path = state.dir.join(if path.as_os_str().is_empty() {
-        Path::new("index.html")
+        Path::new(&state.index)
     } else {
         &path
     });
@@ -81,9 +81,9 @@ async fn index(
 
     let mut res = serve(&req, &path, &state).unwrap_or_else(|| {
         if state.debug {
-            info!(target: "mythian::serve", "serving 404.html");
+            info!(target: "mythian::serve", "serving {}", state.not_found);
         }
-        match serve(&req, "404.html", &state) {
+        match serve(&req, &state.not_found, &state) {
             Some(mut resp) => {
                 *resp.status_mut() = StatusCode::NOT_FOUND;
                 resp
@@ -103,6 +103,8 @@ async fn index(
 pub struct ServerState {
     dir: PathBuf,
     debug: bool,
+    index: String,
+    not_found: String,
     #[cfg(feature = "shutdown-signal")]
     shutdown_signal: mpsc::Sender<()>,
 }
@@ -120,6 +122,8 @@ async fn init_app() -> Result<()> {
     let server_state = Arc::new(ServerState {
         dir: args.dir.canonicalize()?,
         debug: args.debug,
+        index: args.index,
+        not_found: args.not_found,
         #[cfg(feature = "shutdown-signal")]
         shutdown_signal: shutdown_tx,
     });

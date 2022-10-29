@@ -25,6 +25,7 @@ fn addr_from_str(s: &str) -> Result<SocketAddr, AddrParseError> {
 }
 
 #[derive(Debug, Parser)]
+#[clap(name = "Mythian")]
 #[clap(about, version, setting = AppSettings::DeriveDisplayOrder)]
 pub struct Args {
     /// Directory to serve
@@ -38,6 +39,18 @@ pub struct Args {
     #[clap(parse(try_from_str = addr_from_str))]
     #[clap(default_value = concat!("127.0.0.1:", DEFAULT_PORT!(str)))]
     pub listen: Vec<SocketAddr>,
+
+    /// Index file to serve
+    ///
+    /// Must be a file in the base directory.
+    #[clap(short, long, value_name = "FILE", default_value = "index.html")]
+    pub index: String,
+
+    /// 404 file to serve
+    ///
+    /// Must be a file in the base directory.
+    #[clap(long = "404", value_name = "FILE", default_value = "404.html")]
+    pub not_found: String,
 
     /// Show debug information
     #[clap(long)]

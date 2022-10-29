@@ -49,8 +49,9 @@ fn serve(req: &HttpRequest, path: &str, state: &ServerState) -> Option<HttpRespo
         &path
     });
 
-    #[cfg(debug_assertions)]
-    debug!(target: "mythian::serve", path=%path.display());
+    if state.debug {
+        debug!(target: "mythian::serve", path=%path.display());
+    }
 
     let file = match fs::NamedFile::open(path) {
         Ok(file) => file,
@@ -69,17 +70,19 @@ async fn index(
     path: web::Path<String>,
     state: web::Data<Arc<ServerState>>,
 ) -> HttpResponse {
-    #[cfg(debug_assertions)]
-    debug!(
-        target: "mythian::request",
-        version = ?req.version(),
-        method = %req.method(),
-        uri = %req.uri(),
-    );
+    if state.debug {
+        debug!(
+            target: "mythian::request",
+            version = ?req.version(),
+            method = %req.method(),
+            uri = %req.uri(),
+        );
+    }
 
     let mut res = serve(&req, &path, &state).unwrap_or_else(|| {
-        #[cfg(debug_assertions)]
-        info!(target: "mythian::serve", "serving 404.html");
+        if state.debug {
+            info!(target: "mythian::serve", "serving 404.html");
+        }
         match serve(&req, "404.html", &state) {
             Some(mut resp) => {
                 *resp.status_mut() = StatusCode::NOT_FOUND;
@@ -99,6 +102,7 @@ async fn index(
 
 pub struct ServerState {
     dir: PathBuf,
+    debug: bool,
     #[cfg(feature = "shutdown-signal")]
     shutdown_signal: mpsc::Sender<()>,
 }
@@ -115,6 +119,7 @@ async fn init_app() -> Result<()> {
 
     let server_state = Arc::new(ServerState {
         dir: args.dir.canonicalize()?,
+        debug: args.debug,
         #[cfg(feature = "shutdown-signal")]
         shutdown_signal: shutdown_tx,
     });

@@ -39,6 +39,10 @@ pub struct Args {
     #[clap(default_value = concat!("127.0.0.1:", DEFAULT_PORT!(str)))]
     pub listen: Vec<SocketAddr>,
 
+    /// Show debug information
+    #[clap(long)]
+    pub debug: bool,
+
     /// Require confirmation before exiting on Ctrl+C
     #[clap(long)]
     pub confirm_exit: bool,

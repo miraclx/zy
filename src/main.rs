@@ -135,7 +135,12 @@ async fn init_app() -> Result<()> {
         _ = server => {}
         _ = exit::on_signal(
             #[cfg(feature = "shutdown-signal")] &mut shutdown_signal,
-            || server_handle.stop(true)
+            |graceful| async move {
+                if graceful {
+                    info!("Starting graceful shutdown");
+                }
+                server_handle.stop(graceful).await;
+            }
         ) => {}
     }
 

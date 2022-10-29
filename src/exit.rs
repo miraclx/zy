@@ -16,7 +16,7 @@ pub async fn on_signal<F, Fut>(
     handler: F,
 ) -> Result<()>
 where
-    F: Fn() -> Fut,
+    F: FnOnce(bool) -> Fut,
     Fut: Future<Output = ()>,
 {
     let shutdown = async {
@@ -36,16 +36,13 @@ where
             let now = std::time::Instant::now();
             if let Some(last_signal_timestamp) = last_signal_timestamp {
                 if now.duration_since(last_signal_timestamp) < std::time::Duration::from_secs(5) {
-                    info!("[signal] Ctrl-C received, shutting down...");
+                    info!("[signal] Ctrl-C received, exiting...");
                     break;
                 }
             }
             info!("[signal] Ctrl-C received, press again to exit");
             last_signal_timestamp = Some(now);
         }
-
-        // signal::ctrl_c().await?;
-        // info!("[signal] Ctrl-C received");
 
         Result::<()>::Ok(())
     };
@@ -81,15 +78,22 @@ where
         Result::<()>::Ok(())
     };
 
+    let res = tokio::select! {
+        _ = sighup => handler(false),
+        _ = sigint => handler(false),
+        _ = sigterm => handler(true),
+        _ = shutdown => handler(true)
+    };
+
     tokio::select! {
-        _ = sighup => {}
-        _ = sigint => {}
-        _ = sigterm => {}
-        _ = shutdown => {}
+        _ = async {
+            res.await;
+            std::future::pending::<()>().await;
+        } => {},
+        _ = signal::ctrl_c() => {
+            info!("[signal] Ctrl-C received while exiting, forcibly exiting...");
+        }
     }
 
-    handler().await;
-    std::future::pending::<()>().await;
-
-    unreachable!()
+    Ok(())
 }

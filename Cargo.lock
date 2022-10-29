@@ -335,19 +335,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bulan-server"
-version = "0.1.0"
-dependencies = [
- "actix-files",
- "actix-web",
- "clap",
- "color-eyre",
- "tokio",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "bytes"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -827,6 +814,19 @@ dependencies = [
  "log",
  "wasi",
  "windows-sys",
+]
+
+[[package]]
+name = "mythian"
+version = "0.1.0"
+dependencies = [
+ "actix-files",
+ "actix-web",
+ "clap",
+ "color-eyre",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]

@@ -158,8 +158,8 @@ fn setup() -> Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(
             EnvFilter::from_default_env()
-                .add_directive("bulan_server=info".parse()?)
-                .add_directive("bulan_server=debug".parse()?),
+                .add_directive("mythian=info".parse()?)
+                .add_directive("mythian=debug".parse()?),
         )
         .init();
 

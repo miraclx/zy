@@ -1,5 +1,5 @@
 [package]
-name = "bulan-server"
+name = "mythian"
 version = "0.1.0"
 authors = ["The Bulan Developers <dev@bulan.io>"]
 edition = "2021"

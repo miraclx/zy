@@ -77,7 +77,7 @@ async fn index(
         uri = %req.uri(),
     );
 
-    serve(&req, &path, &state).unwrap_or_else(|| {
+    let mut res = serve(&req, &path, &state).unwrap_or_else(|| {
         #[cfg(debug_assertions)]
         info!(target: "mythian::serve", "serving 404.html");
         match serve(&req, "404.html", &state) {
@@ -89,7 +89,14 @@ async fn index(
                 .content_type("text/plain; charset=utf-8")
                 .body("Not Found"),
         }
-    })
+    });
+
+    res.headers_mut().insert(
+        header::CACHE_CONTROL,
+        header::HeaderValue::from_static("public, max-age=3600"),
+    );
+
+    res
 }
 
 pub struct ServerState {
@@ -126,10 +133,6 @@ async fn init_app() -> Result<()> {
                     let mut res = fut.await?;
                     res.headers_mut()
                         .insert(header::SERVER, header::HeaderValue::from_static("Mythian"));
-                    res.headers_mut().insert(
-                        header::CACHE_CONTROL,
-                        header::HeaderValue::from_static("public, max-age=3600"),
-                    );
                     Ok(res)
                 }
             })

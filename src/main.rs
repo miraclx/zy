@@ -49,6 +49,9 @@ fn serve(req: &HttpRequest, path: &str, state: &ServerState) -> Option<HttpRespo
         &path
     });
 
+    #[cfg(debug_assertions)]
+    debug!(target: "mythian::serve", path=%path.display());
+
     let file = match fs::NamedFile::open(path) {
         Ok(file) => file,
         Err(_) => return None,
@@ -61,24 +64,32 @@ fn serve(req: &HttpRequest, path: &str, state: &ServerState) -> Option<HttpRespo
     )
 }
 
-fn not_found(req: &HttpRequest, state: &ServerState) -> HttpResponse {
-    match serve(req, "404.html", state) {
-        Some(mut resp) => {
-            *resp.status_mut() = StatusCode::NOT_FOUND;
-            resp
-        }
-        None => HttpResponse::build(StatusCode::NOT_FOUND)
-            .content_type("text/plain; charset=utf-8")
-            .body("Not Found"),
-    }
-}
-
 async fn index(
     req: HttpRequest,
     path: web::Path<String>,
     state: web::Data<Arc<ServerState>>,
 ) -> HttpResponse {
-    serve(&req, &path, &state).unwrap_or_else(|| not_found(&req, &state))
+    #[cfg(debug_assertions)]
+    debug!(
+        target: "mythian::request",
+        version = ?req.version(),
+        method = %req.method(),
+        uri = %req.uri(),
+    );
+
+    serve(&req, &path, &state).unwrap_or_else(|| {
+        #[cfg(debug_assertions)]
+        info!(target: "mythian::serve", "serving 404.html");
+        match serve(&req, "404.html", &state) {
+            Some(mut resp) => {
+                *resp.status_mut() = StatusCode::NOT_FOUND;
+                resp
+            }
+            None => HttpResponse::build(StatusCode::NOT_FOUND)
+                .content_type("text/plain; charset=utf-8")
+                .body("Not Found"),
+        }
+    })
 }
 
 pub struct ServerState {

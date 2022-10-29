@@ -1,8 +1,14 @@
+use std::future::Future;
+
 use color_eyre::Result;
 use tokio::signal;
 use tracing::info;
 
-pub async fn on_signal() -> Result<()> {
+pub async fn on_signal<F, Fut>(handler: F) -> Result<()>
+where
+    F: Fn() -> Fut,
+    Fut: Future<Output = ()>,
+{
     let sigint = async {
         // let mut last_signal_timestamp = None;
 
@@ -63,5 +69,8 @@ pub async fn on_signal() -> Result<()> {
         _ = sigterm => {}
     }
 
-    Ok(())
+    handler().await;
+    std::future::pending::<()>().await;
+
+    unreachable!()
 }

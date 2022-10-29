@@ -128,13 +128,17 @@ async fn init_app() -> Result<()> {
         //         .show_files_listing(),
         // )
     })
+    .disable_signals()
     .bind((args.host, args.port))?
     .run();
 
     info!("Listening on http://{}:{}", args.host, args.port);
+
+    let server_handle = server.handle();
+
     tokio::select! {
         _ = server => {}
-        _ = exit::on_signal() => {}
+        _ = exit::on_signal(|| server_handle.stop(true)) => {}
         // _ = shutdown_signal.recv() => {}
     }
 

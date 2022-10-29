@@ -85,9 +85,7 @@ async fn index(
                 *resp.status_mut() = StatusCode::NOT_FOUND;
                 resp
             }
-            None => HttpResponse::build(StatusCode::NOT_FOUND)
-                .content_type("text/plain; charset=utf-8")
-                .body("Not Found"),
+            None => HttpResponse::build(StatusCode::NOT_FOUND).finish(),
         }
     });
 

@@ -122,9 +122,12 @@ async fn init_app() -> Result<()> {
     let server = HttpServer::new(move || {
         App::new()
             .route("/ping", web::get().to(|| async { "pong" }))
-            .route("/{filename:.*}", web::get().to(index))
-            .app_data(web::Data::new(server_state.clone()))
-            .wrap(middleware::Compress::default())
+            .service(
+                web::resource("/{path:.*}")
+                    .app_data(web::Data::new(server_state.clone()))
+                    .wrap(middleware::Compress::default())
+                    .route(web::get().to(index)),
+            )
             .wrap_fn(|req, srv| {
                 let fut = srv.call(req);
                 async {

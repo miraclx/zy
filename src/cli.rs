@@ -47,7 +47,7 @@ pub struct Args {
     pub listen: Vec<SocketAddr>,
 
     /// Run as a Single Page Application
-    #[clap(short = 'S', long)]
+    #[clap(short, long)]
     pub spa: bool,
 
     /// Index file to serve
@@ -56,10 +56,6 @@ pub struct Args {
     #[clap(short, long, value_name = "FILE", default_value = "index.html")]
     pub index: String,
 
-    /// Serve hidden files
-    #[clap(short, long)]
-    pub all: bool,
-
     /// 404 file to serve
     ///
     /// Must be a file in the base directory.
@@ -67,22 +63,26 @@ pub struct Args {
     pub not_found: String,
 
     /// Cache time (max-age) in seconds
-    #[clap(short = 'C', long, value_name = "SECS", default_value_t = 3600)]
+    #[clap(short, long, value_name = "SECS", default_value_t = 3600)]
     pub cache: u32,
 
     /// Disable Cross-Origin Resource Sharing (CORS)
     #[clap(long)]
     pub no_cors: bool,
 
-    /// Follow symlinks outside of the base directory (dangerous)
-    #[clap(short = 'L', long)]
+    /// Serve hidden files
+    #[clap(short, long)]
+    pub all: bool,
+
+    /// Follow symlinks outside of the base directory (unsafe)
+    #[clap(short, long)]
     pub follow_links: bool,
 
-    /// Show debug information
-    #[clap(short = 'D', long)]
-    pub debug: bool,
+    /// Be verbose
+    #[clap(short, long)]
+    pub verbose: bool,
 
     /// Require confirmation before exiting on Ctrl+C
-    #[clap(long)]
+    #[clap(short = 'x', long)]
     pub confirm_exit: bool,
 }

@@ -59,7 +59,7 @@ fn serve(
     };
     let path = state.args.dir.join(path);
 
-    if state.args.debug {
+    if state.args.verbose {
         debug!(target: "mythian::serve", path=%path.display());
     }
 
@@ -87,7 +87,7 @@ async fn index(
     path: web::Path<String>,
     state: web::Data<Arc<ServerState>>,
 ) -> HttpResponse {
-    if state.args.debug {
+    if state.args.verbose {
         debug!(
             target: "mythian::request",
             version = ?req.version(),
@@ -103,7 +103,7 @@ async fn index(
                     accept.iter().any(|mime| mime.item == "text/html")
                 });
             if accepts_html {
-                if state.args.debug {
+                if state.args.verbose {
                     info!(target: "mythian::serve", "spa routing to {}", state.args.index);
                 }
                 match serve(&req, &state.args.index, PathSource::Server, &state) {
@@ -112,7 +112,7 @@ async fn index(
                 }
             }
         }
-        if state.args.debug {
+        if state.args.verbose {
             info!(target: "mythian::serve", "not found, serving {}", state.args.not_found);
         }
         match serve(&req, &state.args.not_found, PathSource::Server, &state) {

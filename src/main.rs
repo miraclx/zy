@@ -87,10 +87,22 @@ async fn index(
     }
 
     let mut res = serve(&req, &path, &state).unwrap_or_else(|| {
-        if state.args.debug {
-            info!(target: "mythian::serve", "serving {}", state.args.not_found);
+        if state.args.spa {
+            let accepts_html = <header::Accept as header::Header>::parse(&req)
+                .map_or(false, |accept| {
+                    accept.iter().any(|mime| mime.item == "text/html")
+                });
+            if accepts_html {
+                info!(target: "mythian::serve", "spa routing to {}", state.args.index);
+                match serve(&req, &state.args.index, &state) {
+                    Some(res) => return res,
+                    None => {}
+                }
+            }
         }
-        // todo! if SPA, file not found, and no extension, serve index.html
+        if state.args.debug {
+            info!(target: "mythian::serve", "not found, serving {}", state.args.not_found);
+        }
         match serve(&req, &state.args.not_found, &state) {
             Some(mut resp) => {
                 *resp.status_mut() = StatusCode::NOT_FOUND;

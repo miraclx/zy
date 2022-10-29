@@ -46,6 +46,10 @@ pub struct Args {
     #[clap(default_value = concat!("127.0.0.1:", DEFAULT_PORT!(str)))]
     pub listen: Vec<SocketAddr>,
 
+    /// Run as a Single Page Application
+    #[clap(short = 'S', long)]
+    pub spa: bool,
+
     /// Index file to serve
     ///
     /// Must be a file in the base directory.

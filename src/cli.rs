@@ -52,6 +52,10 @@ pub struct Args {
     #[clap(short, long, value_name = "FILE", default_value = "index.html")]
     pub index: String,
 
+    /// Serve hidden files
+    #[clap(short, long)]
+    pub all: bool,
+
     /// 404 file to serve
     ///
     /// Must be a file in the base directory.

@@ -50,6 +50,15 @@ fn serve(req: &HttpRequest, path: &str, state: &ServerState) -> Option<HttpRespo
         debug!(target: "mythian::serve", path=%path.display());
     }
 
+    if !state.args.all
+        && path
+            .file_name()?
+            .to_str()
+            .map_or(false, |s| s.starts_with('.'))
+    {
+        return None;
+    }
+
     if !state.args.follow_links && path.is_symlink() {
         return None;
     }

@@ -8,7 +8,8 @@ use actix_web::{middleware, web, App, HttpServer};
 use actix_web::{HttpRequest, HttpResponse};
 use clap::Parser;
 use color_eyre::eyre::Result;
-// use tokio::sync::mpsc;
+#[cfg(feature = "shutdown-signal")]
+use tokio::sync::mpsc;
 use tracing::{debug, info};
 use tracing_subscriber::EnvFilter;
 
@@ -82,7 +83,8 @@ async fn index(
 
 pub struct ServerState {
     dir: PathBuf,
-    // shutdown_signal: mpsc::Sender<()>,
+    #[cfg(feature = "shutdown-signal")]
+    shutdown_signal: mpsc::Sender<()>,
 }
 
 async fn init_app() -> Result<()> {
@@ -92,11 +94,13 @@ async fn init_app() -> Result<()> {
 
     debug!("Args: {:#?}", args);
 
-    // let (shutdown_tx, mut shutdown_signal) = mpsc::channel(1);
+    #[cfg(feature = "shutdown-signal")]
+    let (shutdown_tx, mut shutdown_signal) = mpsc::channel(1);
 
     let server_state = Arc::new(ServerState {
         dir: args.dir.canonicalize()?,
-        // shutdown_signal: shutdown_tx,
+        #[cfg(feature = "shutdown-signal")]
+        shutdown_signal: shutdown_tx,
     });
 
     let server = HttpServer::new(move || {
@@ -138,8 +142,10 @@ async fn init_app() -> Result<()> {
 
     tokio::select! {
         _ = server => {}
-        _ = exit::on_signal(|| server_handle.stop(true)) => {}
-        // _ = shutdown_signal.recv() => {}
+        _ = exit::on_signal(
+            #[cfg(feature = "shutdown-signal")] &mut shutdown_signal,
+            || server_handle.stop(true)
+        ) => {}
     }
 
     Ok(())

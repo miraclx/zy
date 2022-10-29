@@ -2,13 +2,26 @@ use std::future::Future;
 
 use color_eyre::Result;
 use tokio::signal;
+#[cfg(feature = "shutdown-signal")]
+use tokio::sync::mpsc;
 use tracing::info;
 
-pub async fn on_signal<F, Fut>(handler: F) -> Result<()>
+pub async fn on_signal<F, Fut>(
+    #[cfg(feature = "shutdown-signal")] shutdown_signal: &mut mpsc::Receiver<()>,
+    handler: F,
+) -> Result<()>
 where
     F: Fn() -> Fut,
     Fut: Future<Output = ()>,
 {
+    let shutdown = async {
+        #[cfg(feature = "shutdown-signal")]
+        shutdown_signal.recv().await;
+
+        #[cfg(not(feature = "shutdown-signal"))]
+        std::future::pending::<()>().await;
+    };
+
     let sigint = async {
         // let mut last_signal_timestamp = None;
 
@@ -67,6 +80,7 @@ where
         _ = sighup => {}
         _ = sigint => {}
         _ = sigterm => {}
+        _ = shutdown => {}
     }
 
     handler().await;

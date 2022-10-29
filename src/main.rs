@@ -103,7 +103,9 @@ async fn index(
                     accept.iter().any(|mime| mime.item == "text/html")
                 });
             if accepts_html {
-                info!(target: "mythian::serve", "spa routing to {}", state.args.index);
+                if state.args.debug {
+                    info!(target: "mythian::serve", "spa routing to {}", state.args.index);
+                }
                 match serve(&req, &state.args.index, PathSource::Server, &state) {
                     Some(res) => return res,
                     None => {}

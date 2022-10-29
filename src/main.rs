@@ -92,19 +92,22 @@ async fn index(
         }
     });
 
-    res.headers_mut().insert(
-        header::CACHE_CONTROL,
-        header::HeaderValue::from_static("public, max-age=3600"),
-    );
+    if let Ok((k, v)) = header::TryIntoHeaderPair::try_into_pair(header::CacheControl(vec![
+        header::CacheDirective::Public,
+        header::CacheDirective::MaxAge(state.cache),
+    ])) {
+        res.headers_mut().insert(k, v);
+    }
 
     res
 }
 
 pub struct ServerState {
     dir: PathBuf,
-    debug: bool,
     index: String,
     not_found: String,
+    cache: u32,
+    debug: bool,
     #[cfg(feature = "shutdown-signal")]
     shutdown_signal: mpsc::Sender<()>,
 }
@@ -121,9 +124,10 @@ async fn init_app() -> Result<()> {
 
     let server_state = Arc::new(ServerState {
         dir: args.dir.canonicalize()?,
-        debug: args.debug,
         index: args.index,
         not_found: args.not_found,
+        cache: args.cache,
+        debug: args.debug,
         #[cfg(feature = "shutdown-signal")]
         shutdown_signal: shutdown_tx,
     });

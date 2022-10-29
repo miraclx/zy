@@ -1,3 +1,5 @@
+use std::ffi::OsStr;
+use std::io;
 use std::net::{AddrParseError, IpAddr, SocketAddr};
 use std::path::PathBuf;
 
@@ -51,6 +53,10 @@ pub struct Args {
     /// Must be a file in the base directory.
     #[clap(long = "404", value_name = "FILE", default_value = "404.html")]
     pub not_found: String,
+
+    /// Cache time (max-age) in seconds
+    #[clap(short = 'C', long, value_name = "SECS", default_value_t = 3600)]
+    pub cache: u32,
 
     /// Show debug information
     #[clap(long)]

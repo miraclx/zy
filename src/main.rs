@@ -2,9 +2,8 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use actix_files as fs;
-use actix_web::dev::Service;
 use actix_web::http::{header, StatusCode};
-use actix_web::{guard, middleware, web, App, HttpServer};
+use actix_web::{guard, web, App, HttpServer};
 use actix_web::{HttpRequest, HttpResponse};
 use clap::Parser;
 use color_eyre::eyre::Result;
@@ -15,6 +14,7 @@ use tracing_subscriber::EnvFilter;
 
 mod cli;
 mod exit;
+mod middleware;
 
 // /a => a
 // a/../b => b
@@ -121,6 +121,7 @@ async fn init_app() -> Result<()> {
 
     let server = HttpServer::new(move || {
         App::new()
+            .wrap(middleware::MythianServer)
             .service(
                 web::resource("/ping").route(
                     web::route()
@@ -138,15 +139,6 @@ async fn init_app() -> Result<()> {
                             .to(index),
                     ),
             )
-            .wrap_fn(|req, srv| {
-                let fut = srv.call(req);
-                async {
-                    let mut res = fut.await?;
-                    res.headers_mut()
-                        .insert(header::SERVER, header::HeaderValue::from_static("Mythian"));
-                    Ok(res)
-                }
-            })
     })
     .disable_signals()
     .bind((args.host, args.port))?

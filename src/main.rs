@@ -50,7 +50,7 @@ fn serve(req: &HttpRequest, path: &str, state: &ServerState) -> Option<HttpRespo
         debug!(target: "mythian::serve", path=%path.display());
     }
 
-    if !state.args.follow_links && path.symlink_metadata().ok()?.is_symlink() {
+    if !state.args.follow_links && path.is_symlink() {
         return None;
     }
 

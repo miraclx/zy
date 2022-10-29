@@ -43,13 +43,13 @@ fn serve(req: &HttpRequest, path: &str, state: &ServerState) -> Option<HttpRespo
         Err(_) => return None,
     };
 
-    let path = state.dir.join(if path.as_os_str().is_empty() {
-        Path::new(&state.index)
+    let path = state.args.dir.join(if path.as_os_str().is_empty() {
+        Path::new(&state.args.index)
     } else {
         &path
     });
 
-    if state.debug {
+    if state.args.debug {
         debug!(target: "mythian::serve", path=%path.display());
     }
 
@@ -70,7 +70,7 @@ async fn index(
     path: web::Path<String>,
     state: web::Data<Arc<ServerState>>,
 ) -> HttpResponse {
-    if state.debug {
+    if state.args.debug {
         debug!(
             target: "mythian::request",
             version = ?req.version(),
@@ -80,10 +80,11 @@ async fn index(
     }
 
     let mut res = serve(&req, &path, &state).unwrap_or_else(|| {
-        if state.debug {
-            info!(target: "mythian::serve", "serving {}", state.not_found);
+        if state.args.debug {
+            info!(target: "mythian::serve", "serving {}", state.args.not_found);
         }
-        match serve(&req, &state.not_found, &state) {
+        // todo! if SPA, file not found, and no extension, serve index.html
+        match serve(&req, &state.args.not_found, &state) {
             Some(mut resp) => {
                 *resp.status_mut() = StatusCode::NOT_FOUND;
                 resp
@@ -94,7 +95,7 @@ async fn index(
 
     if let Ok((k, v)) = header::TryIntoHeaderPair::try_into_pair(header::CacheControl(vec![
         header::CacheDirective::Public,
-        header::CacheDirective::MaxAge(state.cache),
+        header::CacheDirective::MaxAge(state.args.cache),
     ])) {
         res.headers_mut().insert(k, v);
     }
@@ -103,11 +104,7 @@ async fn index(
 }
 
 pub struct ServerState {
-    dir: PathBuf,
-    index: String,
-    not_found: String,
-    cache: u32,
-    debug: bool,
+    args: cli::Args,
     #[cfg(feature = "shutdown-signal")]
     shutdown_signal: mpsc::Sender<()>,
 }
@@ -123,19 +120,16 @@ async fn init_app() -> Result<()> {
     let (shutdown_tx, mut shutdown_signal) = mpsc::channel(1);
 
     let server_state = Arc::new(ServerState {
-        dir: args.dir.canonicalize()?,
-        index: args.index,
-        not_found: args.not_found,
-        cache: args.cache,
-        debug: args.debug,
+        args: args,
         #[cfg(feature = "shutdown-signal")]
         shutdown_signal: shutdown_tx,
     });
 
+    let server_state_1 = server_state.clone();
     let mut server = HttpServer::new(move || {
         App::new()
             .wrap(middleware::MythianServer)
-            .app_data(web::Data::new(server_state.clone()))
+            .app_data(web::Data::new(server_state_1.clone()))
             .service(
                 web::resource("/ping")
                     .guard(guard::Any(guard::Get()).or(guard::Head()))
@@ -150,7 +144,7 @@ async fn init_app() -> Result<()> {
     })
     .disable_signals();
 
-    for addr in args.listen {
+    for addr in &server_state.args.listen {
         server = server.bind(addr)?;
         info!("Listening on http://{}", addr);
     }
@@ -162,7 +156,7 @@ async fn init_app() -> Result<()> {
     tokio::select! {
         _ = server => {}
         _ = exit::on_signal(
-            args.confirm_exit,
+            server_state.args.confirm_exit,
             #[cfg(feature = "shutdown-signal")] &mut shutdown_signal,
             |graceful| async move {
                 if graceful {

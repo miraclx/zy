@@ -26,12 +26,16 @@ fn addr_from_str(s: &str) -> Result<SocketAddr, AddrParseError> {
     s.parse::<SocketAddr>()
 }
 
+fn parse_canonicalize_dir(s: &OsStr) -> Result<PathBuf, io::Error> {
+    PathBuf::from(s).canonicalize()
+}
+
 #[derive(Debug, Parser)]
 #[clap(name = "Mythian")]
 #[clap(about, version, setting = AppSettings::DeriveDisplayOrder)]
 pub struct Args {
     /// Directory to serve
-    #[clap(default_value = ".")]
+    #[clap(default_value = ".", parse(try_from_os_str = parse_canonicalize_dir))]
     pub dir: PathBuf,
 
     /// Sets the address to listen on (repeatable)

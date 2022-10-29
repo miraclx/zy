@@ -126,7 +126,8 @@ async fn init_app() -> Result<()> {
                 web::resource("/{path:.*}")
                     .app_data(web::Data::new(server_state.clone()))
                     .wrap(middleware::Compress::default())
-                    .route(web::get().to(index)),
+                    .route(web::get().to(index))
+                    .route(web::head().to(index)),
             )
             .wrap_fn(|req, srv| {
                 let fut = srv.call(req);

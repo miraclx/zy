@@ -66,6 +66,10 @@ pub struct Args {
     #[clap(short = 'C', long, value_name = "SECS", default_value_t = 3600)]
     pub cache: u32,
 
+    /// Disable Cross-Origin Resource Sharing (CORS)
+    #[clap(long)]
+    pub no_cors: bool,
+
     /// Follow symlinks outside of the base directory (dangerous)
     #[clap(short = 'L', long)]
     pub follow_links: bool,

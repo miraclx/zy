@@ -107,6 +107,13 @@ async fn index(
         res.headers_mut().insert(k, v);
     }
 
+    if !state.args.no_cors {
+        res.headers_mut().insert(
+            header::ACCESS_CONTROL_ALLOW_ORIGIN,
+            header::HeaderValue::from_static("*"),
+        );
+    }
+
     res
 }
 

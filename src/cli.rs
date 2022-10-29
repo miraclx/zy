@@ -67,7 +67,7 @@ pub struct Args {
     pub follow_links: bool,
 
     /// Show debug information
-    #[clap(long)]
+    #[clap(short = 'D', long)]
     pub debug: bool,
 
     /// Require confirmation before exiting on Ctrl+C

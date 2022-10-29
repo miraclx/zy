@@ -119,7 +119,7 @@ async fn init_app() -> Result<()> {
         shutdown_signal: shutdown_tx,
     });
 
-    let server = HttpServer::new(move || {
+    let mut server = HttpServer::new(move || {
         App::new()
             .wrap(middleware::MythianServer)
             .app_data(web::Data::new(server_state.clone()))
@@ -135,11 +135,14 @@ async fn init_app() -> Result<()> {
                     .to(index),
             )
     })
-    .disable_signals()
-    .bind((args.host, args.port))?
-    .run();
+    .disable_signals();
 
-    info!("Listening on http://{}:{}", args.host, args.port);
+    for addr in args.listen {
+        server = server.bind(addr)?;
+        info!("Listening on http://{}", addr);
+    }
+
+    let server = server.run();
 
     let server_handle = server.handle();
 

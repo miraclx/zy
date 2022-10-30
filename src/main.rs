@@ -65,11 +65,11 @@ fn serve(
         }
     }
 
-    let mut path = if path.as_os_str().is_empty() {
-        state.args.dir.clone()
+    let mut path = state.args.dir.join(if path.as_os_str().is_empty() {
+        state.args.dir.join(&state.args.index)
     } else {
         state.args.dir.join(path).canonicalize().ok()?
-    };
+    });
 
     if let PathSource::Client = source {
         if !path.starts_with(&state.args.dir) && !state.args.follow_links {
@@ -122,7 +122,7 @@ async fn index(
                 });
             if accepts_html {
                 if state.args.verbose {
-                    info!(target: "zy::serve", "spa routing to {}", state.args.index);
+                    info!(target: "zy::serve", "SPA routing to {}", state.args.index);
                 }
                 match serve(&req, &state.args.index, PathSource::Server, &state) {
                     Some(res) => return res,

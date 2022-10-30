@@ -1,4 +1,3 @@
-use std::env;
 use std::io;
 use std::path::{Component, Path, PathBuf};
 use std::sync::Arc;
@@ -173,13 +172,8 @@ async fn init_app() -> Result<()> {
 
     info!("PID: {}", std::process::id());
 
-    if let Ok(port) = env::var("PORT") {
-        args.listen.push(([127, 0, 0, 1], port.parse()?).into());
-    }
-
     if args.listen.is_empty() {
-        args.listen
-            .push(([127, 0, 0, 1], DEFAULT_PORT!(int)).into());
+        args.listen.push(cli::addr_from_str("127.0.0.1").unwrap());
     }
 
     debug!("Args: {:#?}", args);

@@ -1,3 +1,4 @@
+use std::env;
 use std::ffi::OsStr;
 use std::io;
 use std::net::{AddrParseError, IpAddr, SocketAddr};
@@ -5,23 +6,23 @@ use std::path::PathBuf;
 
 use clap::{AppSettings, Parser};
 
-#[macro_export]
-macro_rules! DEFAULT_PORT {
-    (int) => {
-        3000
-    };
-    (str) => {
-        "3000"
-    };
-}
+pub const DEFAULT_PORT: u16 = 3000;
 
-fn addr_from_str(s: &str) -> Result<SocketAddr, AddrParseError> {
+pub fn addr_from_str(s: &str) -> Result<SocketAddr, AddrParseError> {
     match s.parse::<u16>() {
         Ok(port) => return Ok(SocketAddr::from(([127, 0, 0, 1], port))),
         Err(_) => {}
     }
     match s.parse::<IpAddr>() {
-        Ok(host) => return Ok(SocketAddr::from((host, DEFAULT_PORT!(int)))),
+        Ok(host) => {
+            return Ok(SocketAddr::from((
+                host,
+                env::var("PORT")
+                    .ok()
+                    .and_then(|p| p.parse().ok())
+                    .unwrap_or(DEFAULT_PORT),
+            )))
+        }
         Err(_) => {}
     }
     s.parse::<SocketAddr>()

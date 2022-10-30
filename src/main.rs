@@ -8,8 +8,6 @@ use actix_web::{guard, web, App, HttpServer};
 use actix_web::{HttpRequest, HttpResponse};
 use clap::Parser;
 use color_eyre::eyre::Result;
-#[cfg(feature = "shutdown-signal")]
-use tokio::sync::mpsc;
 use tracing::{debug, info};
 use tracing_subscriber::EnvFilter;
 
@@ -67,7 +65,7 @@ fn serve(
     let path = state.args.dir.join(path);
 
     if state.args.verbose {
-        debug!(target: "mythian::serve", path=%path.display());
+        debug!(target: "zy::serve", path=%path.display());
     }
 
     if let PathSource::Client = source {
@@ -83,8 +81,10 @@ fn serve(
     let file = fs::NamedFile::open(path).ok()?;
 
     Some(
-        file.disable_content_disposition()
+        file.use_etag(true)
             .prefer_utf8(true)
+            .use_last_modified(true)
+            .disable_content_disposition()
             .into_response(&req),
     )
 }
@@ -96,7 +96,7 @@ async fn index(
 ) -> HttpResponse {
     if state.args.verbose {
         debug!(
-            target: "mythian::request",
+            target: "zy::request",
             version = ?req.version(),
             method = %req.method(),
             uri = %req.uri(),
@@ -111,7 +111,7 @@ async fn index(
                 });
             if accepts_html {
                 if state.args.verbose {
-                    info!(target: "mythian::serve", "spa routing to {}", state.args.index);
+                    info!(target: "zy::serve", "spa routing to {}", state.args.index);
                 }
                 match serve(&req, &state.args.index, PathSource::Server, &state) {
                     Some(res) => return res,
@@ -120,7 +120,7 @@ async fn index(
             }
         }
         if state.args.verbose {
-            info!(target: "mythian::serve", "not found, serving {}", state.args.not_found);
+            info!(target: "zy::serve", "not found, serving {}", state.args.not_found);
         }
         match serve(&req, &state.args.not_found, PathSource::Server, &state) {
             Some(mut resp) => {
@@ -150,8 +150,6 @@ async fn index(
 
 pub struct ServerState {
     args: cli::Args,
-    #[cfg(feature = "shutdown-signal")]
-    shutdown_signal: mpsc::Sender<()>,
 }
 
 async fn init_app() -> Result<()> {
@@ -161,25 +159,13 @@ async fn init_app() -> Result<()> {
 
     debug!("Args: {:#?}", args);
 
-    #[cfg(feature = "shutdown-signal")]
-    let (shutdown_tx, mut shutdown_signal) = mpsc::channel(1);
-
-    let server_state = Arc::new(ServerState {
-        args: args,
-        #[cfg(feature = "shutdown-signal")]
-        shutdown_signal: shutdown_tx,
-    });
+    let server_state = Arc::new(ServerState { args });
 
     let server_state_1 = server_state.clone();
     let mut server = HttpServer::new(move || {
         App::new()
-            .wrap(middleware::MythianServer)
+            .wrap(middleware::ZyServer)
             .app_data(web::Data::new(server_state_1.clone()))
-            .service(
-                web::resource("/ping")
-                    .guard(guard::Any(guard::Get()).or(guard::Head()))
-                    .to(|| async { "pong" }),
-            )
             .service(
                 web::resource("/{path:.*}")
                     .guard(guard::Any(guard::Get()).or(guard::Head()))
@@ -202,7 +188,6 @@ async fn init_app() -> Result<()> {
         _ = server => {}
         _ = exit::on_signal(
             server_state.args.confirm_exit,
-            #[cfg(feature = "shutdown-signal")] &mut shutdown_signal,
             |graceful| async move {
                 if graceful {
                     info!("Starting graceful shutdown");
@@ -226,8 +211,8 @@ fn setup() -> Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(
             EnvFilter::from_default_env()
-                .add_directive("mythian=info".parse()?)
-                .add_directive("mythian=debug".parse()?),
+                .add_directive("zy=info".parse()?)
+                .add_directive("zy=debug".parse()?),
         )
         .init();
 

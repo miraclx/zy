@@ -1,11 +1,14 @@
 [package]
-name = "mythian"
+name = "zy"
 version = "0.1.0"
-authors = ["The Bulan Developers <dev@bulan.io>"]
+authors = ["Miraculous Owonubi <omiraculous@gmail.com>"]
 edition = "2021"
-description = "The bulan.io Backend Server"
-repository = "https://github.com/bulan-io/bulan-server"
+rust-version = "1.59.0"
+description = "Minimal and blazing-fast file server."
+repository = "https://github.com/miraclx/zy"
 license = "MIT OR Apache-2.0"
+keywords = ["static", "file", "server", "http", "cli"]
+categories = ["command-line-utilities", "web-programming::http-server"]
 
 [dependencies]
 clap = { version = "3.2", features = ["derive"] }
@@ -15,6 +18,3 @@ actix-web = "4.2.1"
 color-eyre = "0.6.2"
 actix-files = "0.6.2"
 tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
-
-[features]
-shutdown-signal = []

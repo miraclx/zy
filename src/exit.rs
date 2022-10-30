@@ -2,8 +2,6 @@ use std::future::Future;
 
 use color_eyre::Result;
 use tokio::signal;
-#[cfg(feature = "shutdown-signal")]
-use tokio::sync::mpsc;
 use tracing::info;
 
 /// A future that never resolves, but will call the handler when it detects a shutdown signal.
@@ -11,23 +9,11 @@ use tracing::info;
 /// Signals: `SIGINT`, `SIGTERM`, `SIGHUP` or explicit `shutdown` call.
 ///
 /// A use-case of this, is to explicitly shutdown the server. Which then cancels this future.
-pub async fn on_signal<F, Fut>(
-    confirm_exit: bool,
-    #[cfg(feature = "shutdown-signal")] shutdown_signal: &mut mpsc::Receiver<()>,
-    handler: F,
-) -> Result<()>
+pub async fn on_signal<F, Fut>(confirm_exit: bool, handler: F) -> Result<()>
 where
     F: FnOnce(bool) -> Fut,
     Fut: Future<Output = ()>,
 {
-    let shutdown = async {
-        #[cfg(feature = "shutdown-signal")]
-        shutdown_signal.recv().await;
-
-        #[cfg(not(feature = "shutdown-signal"))]
-        std::future::pending::<()>().await;
-    };
-
     let sigint = async {
         if confirm_exit {
             let mut last_signal_timestamp = None;
@@ -88,7 +74,6 @@ where
         _ = sighup => handler(false),
         _ = sigint => handler(false),
         _ = sigterm => handler(true),
-        _ = shutdown => handler(true)
     };
 
     tokio::select! {

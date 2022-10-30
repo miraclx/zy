@@ -31,7 +31,7 @@ fn parse_canonicalize_dir(s: &OsStr) -> Result<PathBuf, io::Error> {
 }
 
 #[derive(Debug, Parser)]
-#[clap(name = "Mythian")]
+#[clap(name = "Zy")]
 #[clap(about, version, setting = AppSettings::DeriveDisplayOrder)]
 pub struct Args {
     /// Directory to serve

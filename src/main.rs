@@ -56,7 +56,11 @@ fn serve(
     let path = normalize_path(Path::new(&*path)).ok()?;
 
     if let PathSource::Client = source {
-        if !state.args.all && path.file_name()?.to_string_lossy().starts_with('.') {
+        if !state.args.all
+            && path
+                .file_name()
+                .map_or(false, |name| name.to_string_lossy().starts_with('.'))
+        {
             return None;
         }
     }

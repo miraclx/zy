@@ -7,7 +7,7 @@
 - [Single Page Application support](https://developer.mozilla.org/en-US/docs/Glossary/SPA)
 - Partial responses ([Range](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Range) support)
 - Cross-Origin Resource Sharing ([CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS))
-- [Automatic HTTP compression](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Encoding) (Gzip, Brotli, Deflate)
+- [Automatic HTTP compression](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Encoding) (Zstd, Gzip, Brotli, Deflate)
 - [Cache control](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control) (ETag, Last-Modified, Cache-Control)
 - Auto-served `index.html` files
 - Sane defaults

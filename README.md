@@ -9,6 +9,7 @@
 - Cross-Origin Resource Sharing ([CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS))
 - [Automatic HTTP compression](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Encoding) (Gzip, Brotli, Deflate)
 - [Cache control](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control) (ETag, Last-Modified, Cache-Control)
+- Auto-served `index.html` files
 - Sane defaults
   - No access to hidden files
   - No access to content outside the base directory

@@ -53,19 +53,7 @@ fn serve(
     source: PathSource,
     state: &ServerState,
 ) -> Option<HttpResponse> {
-    let mut source = source;
     let path = normalize_path(Path::new(&*path)).ok()?;
-
-    let path = if path.as_os_str().is_empty() {
-        source = PathSource::Server;
-        Path::new(&state.args.index)
-    } else {
-        &path
-    };
-
-    if state.args.verbose {
-        debug!(target: "zy::serve", path=%path.display());
-    }
 
     if let PathSource::Client = source {
         if !state.args.all && path.file_name()?.to_string_lossy().starts_with('.') {
@@ -73,12 +61,28 @@ fn serve(
         }
     }
 
-    let path = state.args.dir.join(path).canonicalize().ok()?;
+    let mut path = if path.as_os_str().is_empty() {
+        state.args.dir.clone()
+    } else {
+        state.args.dir.join(path).canonicalize().ok()?
+    };
 
     if let PathSource::Client = source {
         if !path.starts_with(&state.args.dir) && !state.args.follow_links {
             return None;
         }
+    }
+
+    if path.is_dir() {
+        path = path.join("index.html").canonicalize().ok()?;
+    }
+
+    if !path.is_file() {
+        return None;
+    }
+
+    if state.args.verbose {
+        debug!(target: "zy::serve", path=%path.strip_prefix(&state.args.dir).ok()?.display());
     }
 
     let file = fs::NamedFile::open(path).ok()?;
@@ -130,7 +134,11 @@ async fn index(
                 *resp.status_mut() = StatusCode::NOT_FOUND;
                 resp
             }
-            None => HttpResponse::build(StatusCode::NOT_FOUND).finish(),
+            None => {
+                if state.args.verbose {
+                    info!(target: "zy::serve", "{} not found, omitting response body", state.args.not_found);
+                }
+                HttpResponse::build(StatusCode::NOT_FOUND).finish()},
         }
     });
 

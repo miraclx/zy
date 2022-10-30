@@ -5,6 +5,7 @@ use std::path::PathBuf;
 
 use clap::{AppSettings, Parser};
 
+#[macro_export]
 macro_rules! DEFAULT_PORT {
     (int) => {
         3000
@@ -33,16 +34,16 @@ fn parse_canonicalize_dir(s: &OsStr) -> Result<PathBuf, io::Error> {
 #[derive(Debug, Parser)]
 #[clap(name = "Zy")]
 #[clap(about, version, setting = AppSettings::DeriveDisplayOrder)]
+#[clap(after_help = "The PORT environment variable is also supported.")]
 pub struct Args {
     /// Directory to serve
     #[clap(default_value = ".", parse(try_from_os_str = parse_canonicalize_dir))]
     pub dir: PathBuf,
 
     /// Sets the address to listen on (repeatable)
-    /// Valid: `3000`, `127.0.0.1`, `127.0.0.1:3000`
+    /// Valid: `3000`, `127.0.0.1`, `127.0.0.1:3000` [default: 127.0.0.1:3000]
     #[clap(short, long, value_name = "URI", multiple_occurrences = true)]
     #[clap(verbatim_doc_comment, parse(try_from_str = addr_from_str))]
-    #[clap(default_value = concat!("127.0.0.1:", DEFAULT_PORT!(str)))]
     pub listen: Vec<SocketAddr>,
 
     /// Run as a Single Page Application

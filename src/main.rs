@@ -1,3 +1,4 @@
+use std::env;
 use std::io;
 use std::path::{Component, Path, PathBuf};
 use std::sync::Arc;
@@ -168,9 +169,18 @@ pub struct ServerState {
 }
 
 async fn init_app() -> Result<()> {
-    let args = cli::Args::parse();
+    let mut args = cli::Args::parse();
 
     info!("PID: {}", std::process::id());
+
+    if let Ok(port) = env::var("PORT") {
+        args.listen.push(([127, 0, 0, 1], port.parse()?).into());
+    }
+
+    if args.listen.is_empty() {
+        args.listen
+            .push(([127, 0, 0, 1], DEFAULT_PORT!(int)).into());
+    }
 
     debug!("Args: {:#?}", args);
 

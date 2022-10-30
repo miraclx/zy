@@ -56,7 +56,7 @@ You can run `zy --help` to see all available options.
 
 ```console
 $ zy --help
-Zy 0.1.2
+Zy 0.1.3
 Minimal and blazing-fast file server.
 
 USAGE:

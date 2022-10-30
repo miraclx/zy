@@ -82,7 +82,7 @@ OPTIONS:
 
 ## Credits
 
-Zy was originally inspired by [sfz](https://github.com/weihanglo/sfz), [serve](https://github.com/vercel/serve) and [http-server](https://github.com/http-party/http-server). It is written in Rust and uses [actix](https://github.com/actix/actix-web) as the web framework.
+Zy was originally inspired by [sfz](https://github.com/weihanglo/sfz), [serve](https://github.com/vercel/serve) and [http-server](https://github.com/http-party/http-server). It is written in [Rust](https://rust-lang.org) and uses [actix](https://github.com/actix/actix-web) as the web framework.
 
 ## Contribution
 

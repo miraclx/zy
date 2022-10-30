@@ -62,7 +62,6 @@ fn serve(
     } else {
         &path
     };
-    let path = state.args.dir.join(path);
 
     if state.args.verbose {
         debug!(target: "zy::serve", path=%path.display());
@@ -72,8 +71,12 @@ fn serve(
         if !state.args.all && path.file_name()?.to_string_lossy().starts_with('.') {
             return None;
         }
+    }
 
-        if !state.args.follow_links && path.is_symlink() {
+    let path = state.args.dir.join(path).canonicalize().ok()?;
+
+    if let PathSource::Client = source {
+        if !path.starts_with(&state.args.dir) && !state.args.follow_links {
             return None;
         }
     }

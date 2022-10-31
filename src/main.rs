@@ -238,7 +238,9 @@ async fn init_app() -> Result<()> {
     let server_state_1 = server_state.clone();
     let mut server = HttpServer::new(move || {
         App::new()
-            .wrap(middleware::ZyServer)
+            .wrap(middleware::ZyServer {
+                anonymize: server_state_1.args.anonymize,
+            })
             .app_data(web::Data::new(server_state_1.clone()))
             .service(
                 web::resource("/{path:.*}")

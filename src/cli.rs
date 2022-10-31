@@ -123,4 +123,8 @@ pub struct Args {
     /// Require confirmation before exiting on Ctrl+C
     #[clap(short = 'x', long)]
     pub confirm_exit: bool,
+
+    /// Hide the `Server` and `X-Powered-By` headers [alias: `--anon`]
+    #[clap(short = 'Z', long, alias = "anon")]
+    pub anonymize: bool,
 }

@@ -100,7 +100,7 @@ pub struct Args {
     /// Cache time (max-age) [default: 1M]
     /// Valid: `10` for 10 seconds, `1h`, `1year 6months`
     #[clap(short, long, value_name = "TIME", verbatim_doc_comment)]
-    #[clap(default_value = "1M", hide_default_value(true))]
+    #[clap(default_value = "1h", hide_default_value(true))]
     #[clap(parse(try_from_str = parse_cache_time))]
     pub cache: u32,
 

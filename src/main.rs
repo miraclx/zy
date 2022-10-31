@@ -1,3 +1,4 @@
+use std::ffi::OsStr;
 use std::io;
 use std::path::{Component, Path, PathBuf};
 use std::sync::Arc;
@@ -40,6 +41,12 @@ fn normalize_path<P: AsRef<Path>>(path: P) -> io::Result<PathBuf> {
         assert!(matches!(c, Component::Normal(_)));
     }
     Ok(buf)
+}
+
+enum CachePolicy {
+    NoCache,
+    ShouldCache,
+    Undetermined,
 }
 
 enum PathSource {
@@ -89,15 +96,60 @@ fn serve(
         debug!(target: "zy::serve", path=%path.strip_prefix(&state.args.dir).ok()?.display());
     }
 
-    let file = fs::NamedFile::open(path).ok()?;
+    let file = fs::NamedFile::open(&path).ok()?;
 
-    Some(
-        file.use_etag(true)
-            .prefer_utf8(true)
-            .use_last_modified(true)
-            .disable_content_disposition()
-            .into_response(&req),
-    )
+    let mut res = file
+        .use_etag(true)
+        .prefer_utf8(true)
+        .use_last_modified(true)
+        .disable_content_disposition()
+        .into_response(&req);
+
+    // https://github.com/GoogleChrome/lighthouse/blob/60c2fa25d11187802e905e4f335b2e7f6df735f1/core/audits/byte-efficiency/uses-long-cache-ttl.js#L144-L164
+    if let StatusCode::OK | StatusCode::PARTIAL_CONTENT = res.status() {
+        let ext = path.extension().and_then(OsStr::to_str);
+        let mime = ext.map_or(mime::APPLICATION_OCTET_STREAM, |ext| {
+            actix_files::file_extension_to_mime(ext)
+        });
+
+        // https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/renderer/devtools/front_end/common/ResourceType.js;l=279-291;drc=3dab2a4e337404c9f853eccb07a0f647004319e2
+        let cache_policy = match (mime.type_(), mime.subtype()) {
+            (mime::TEXT, mime::HTML) => CachePolicy::NoCache,
+            (mime::APPLICATION, mime::JAVASCRIPT)
+            | (mime::TEXT, mime::CSS)
+            | (mime::IMAGE, _)
+            | (mime::TEXT, _)
+            | (mime::FONT, _) => CachePolicy::ShouldCache,
+            _ if matches!(ext, Some("otf") | Some("woff")) => CachePolicy::ShouldCache,
+            _ => CachePolicy::Undetermined,
+        };
+
+        let mut cache_directives = vec![];
+
+        match cache_policy {
+            CachePolicy::NoCache => {
+                cache_directives.extend([
+                    header::CacheDirective::NoCache,
+                    header::CacheDirective::NoStore,
+                ]);
+            }
+            CachePolicy::ShouldCache => {
+                cache_directives.extend([
+                    header::CacheDirective::Public,
+                    header::CacheDirective::MaxAge(state.args.cache),
+                ]);
+            }
+            CachePolicy::Undetermined => {}
+        }
+
+        if let Ok((k, v)) =
+            header::TryIntoHeaderPair::try_into_pair(header::CacheControl(cache_directives))
+        {
+            res.headers_mut().insert(k, v);
+        }
+    }
+
+    Some(res)
 }
 
 async fn index(
@@ -145,13 +197,6 @@ async fn index(
                 HttpResponse::build(StatusCode::NOT_FOUND).finish()},
         }
     });
-
-    if let Ok((k, v)) = header::TryIntoHeaderPair::try_into_pair(header::CacheControl(vec![
-        header::CacheDirective::Public,
-        header::CacheDirective::MaxAge(state.args.cache),
-    ])) {
-        res.headers_mut().insert(k, v);
-    }
 
     if !state.args.no_cors {
         res.headers_mut().insert(

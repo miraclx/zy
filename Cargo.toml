@@ -12,6 +12,7 @@ categories = ["command-line-utilities", "web-programming::http-server"]
 
 [dependencies]
 clap = { version = "3.2", features = ["derive"] }
+mime = "0.3.16"
 tokio = { version = "1", features = ["macros", "signal"] }
 tracing = "0.1.26"
 actix-web = "4.2.1"

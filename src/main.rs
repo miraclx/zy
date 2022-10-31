@@ -216,7 +216,7 @@ pub struct ServerState {
 async fn init_app() -> Result<()> {
     let mut args = cli::Args::parse();
 
-    info!("PID: {}", std::process::id());
+    info!(pid=?std::process::id());
 
     if let Ok(port) = env::var("PORT") {
         if let Err(_) = port.parse::<u16>() {
@@ -231,7 +231,7 @@ async fn init_app() -> Result<()> {
         args.listen.push(cli::addr_from_str("127.0.0.1").unwrap());
     }
 
-    debug!("Args: {:#?}", args);
+    debug!(args = %format!("{:#?}", args));
 
     let server_state = Arc::new(ServerState { args });
 

@@ -8,7 +8,7 @@ use std::path::PathBuf;
 use clap::{AppSettings, Parser};
 use humantime::{parse_duration, DurationError};
 
-pub const DEFAULT_PORT: u16 = 3000;
+const DEFAULT_PORT: u16 = 3000;
 
 pub fn addr_from_str(s: &str) -> Result<SocketAddr, AddrParseError> {
     match s.parse::<u16>() {
@@ -80,7 +80,7 @@ pub struct Args {
     pub dir: PathBuf,
 
     /// Sets the address to listen on (repeatable) [default: 127.0.0.1:3000]
-    /// Valid: `3000`, `127.0.0.1`, `127.0.0.1:3000`
+    /// Valid: `3000`, `127.0.0.1`, `127.0.0.1:3000` [env: PORT]
     #[clap(short, long, value_name = "URI", multiple_occurrences = true)]
     #[clap(verbatim_doc_comment, parse(try_from_str = addr_from_str))]
     pub listen: Vec<SocketAddr>,

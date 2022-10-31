@@ -1,3 +1,4 @@
+use std::env;
 use std::ffi::OsStr;
 use std::io;
 use std::path::{Component, Path, PathBuf};
@@ -216,6 +217,15 @@ async fn init_app() -> Result<()> {
     let mut args = cli::Args::parse();
 
     info!("PID: {}", std::process::id());
+
+    if let Ok(port) = env::var("PORT") {
+        if let Err(_) = port.parse::<u16>() {
+            eprintln!(
+                "warning: invalid PORT environment variable: {:?}, ignoring",
+                port
+            );
+        }
+    }
 
     if args.listen.is_empty() {
         args.listen.push(cli::addr_from_str("127.0.0.1").unwrap());

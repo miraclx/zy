@@ -1,5 +1,2 @@
 # rust build artifacts
-/target
-
-# direnv
-.envrc
+target/

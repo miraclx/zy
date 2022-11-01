@@ -66,19 +66,23 @@ ARGS:
     <DIR>    Directory to serve [default: .]
 
 OPTIONS:
-    -l, --listen <URI>    Sets the address to listen on (repeatable)
-                          Valid: `3000`, `127.0.0.1`, `127.0.0.1:3000` [default: 127.0.0.1:3000]
+    -l, --listen <URI>    Sets the address to listen on (repeatable) [default: 127.0.0.1:3000]
+                          Valid: `3000`, `127.0.0.1`, `127.0.0.1:3000` [env: PORT]
     -s, --spa             Run as a Single Page Application
     -i, --index <FILE>    Index file to serve from the base directory [default: index.html]
         --404 <FILE>      404 file to serve from the base directory [default: 404.html]
-    -c, --cache <SECS>    Cache time (max-age) in seconds [default: 3600]
+    -c, --cache <TIME>    Cache time (max-age) [default: 1h]
+                          Valid: `10` for 10 seconds, `1h`, `1year 6months`
         --no-cors         Disable Cross-Origin Resource Sharing (CORS)
     -a, --all             Serve hidden files
     -f, --follow-links    Follow symlinks outside of the base directory (unsafe)
     -v, --verbose         Be verbose
     -x, --confirm-exit    Require confirmation before exiting on Ctrl+C
+    -Z, --anonymize       Hide the `Server` and `X-Powered-By` headers [alias: `--anon`]
     -h, --help            Print help information
     -V, --version         Print version information
+
+The PORT environment variable is also supported.
 ```
 
 ## Credits

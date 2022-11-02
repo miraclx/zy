@@ -48,12 +48,14 @@ fn normalize_path<P: AsRef<Path>>(path: P) -> io::Result<PathBuf> {
     Ok(buf)
 }
 
+#[derive(Copy, Clone)]
 enum CachePolicy {
     NoCache,
     ShouldCache,
     Indeterminate,
 }
 
+#[derive(Copy, Clone)]
 enum PathSource {
     Client,
     Server,
@@ -65,7 +67,7 @@ fn serve(
     source: PathSource,
     state: &ServerState,
 ) -> Option<HttpResponse> {
-    let path = normalize_path(Path::new(&*path)).ok()?;
+    let path = normalize_path(Path::new(path)).ok()?;
 
     if let PathSource::Client = source {
         if !state.args.all
@@ -112,7 +114,7 @@ fn serve(
         .prefer_utf8(true)
         .use_last_modified(true)
         .disable_content_disposition()
-        .into_response(&req);
+        .into_response(req);
 
     // https://github.com/GoogleChrome/lighthouse/blob/60c2fa25d11187802e905e4f335b2e7f6df735f1/core/audits/byte-efficiency/uses-long-cache-ttl.js#L144-L164
     if let StatusCode::OK | StatusCode::PARTIAL_CONTENT = res.status() {
@@ -225,7 +227,7 @@ async fn init_app() -> Result<()> {
     let mut args = cli::Args::parse();
 
     if let Ok(port) = env::var("PORT") {
-        if let Err(_) = port.parse::<u16>() {
+        if port.parse::<u16>().is_err() {
             eprintln!(
                 "warning: invalid PORT environment variable: {:?}, ignoring",
                 port
@@ -309,7 +311,7 @@ async fn init_app() -> Result<()> {
 
 fn setup() -> Result<()> {
     if std::env::var("RUST_LIB_BACKTRACE").is_err() {
-        std::env::set_var("RUST_LIB_BACKTRACE", "1")
+        std::env::set_var("RUST_LIB_BACKTRACE", "1");
     }
     color_eyre::install()?;
 

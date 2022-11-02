@@ -11,21 +11,17 @@ use humantime::{parse_duration, DurationError};
 const DEFAULT_PORT: u16 = 3000;
 
 pub fn addr_from_str(s: &str) -> Result<SocketAddr, AddrParseError> {
-    match s.parse::<u16>() {
-        Ok(port) => return Ok(SocketAddr::from(([127, 0, 0, 1], port))),
-        Err(_) => {}
+    if let Ok(port) = s.parse::<u16>() {
+        return Ok(SocketAddr::from(([127, 0, 0, 1], port)));
     }
-    match s.parse::<IpAddr>() {
-        Ok(host) => {
-            return Ok(SocketAddr::from((
-                host,
-                env::var("PORT")
-                    .ok()
-                    .and_then(|p| p.parse().ok())
-                    .unwrap_or(DEFAULT_PORT),
-            )))
-        }
-        Err(_) => {}
+    if let Ok(host) = s.parse::<IpAddr>() {
+        return Ok(SocketAddr::from((
+            host,
+            env::var("PORT")
+                .ok()
+                .and_then(|p| p.parse().ok())
+                .unwrap_or(DEFAULT_PORT),
+        )));
     }
     s.parse::<SocketAddr>()
 }

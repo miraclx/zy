@@ -30,8 +30,22 @@ pub fn addr_from_str(s: &str) -> Result<SocketAddr, AddrParseError> {
     s.parse::<SocketAddr>()
 }
 
-fn parse_canonicalize_dir(s: &OsStr) -> Result<PathBuf, io::Error> {
-    PathBuf::from(s).canonicalize()
+#[derive(Debug)]
+pub struct CanonicalizedPath {
+    pub raw: PathBuf,
+    pub canonical: PathBuf,
+}
+
+impl CanonicalizedPath {
+    pub fn is_current_dir(&self) -> bool {
+        env::current_dir().map_or(false, |cwd| cwd == self.canonical)
+    }
+}
+
+fn parse_canonicalize_dir(s: &OsStr) -> Result<CanonicalizedPath, io::Error> {
+    let raw = PathBuf::from(s);
+    let canonical = raw.canonicalize()?;
+    Ok(CanonicalizedPath { raw, canonical })
 }
 
 fn parse_cache_time(s: &str) -> color_eyre::Result<u32> {
@@ -77,7 +91,7 @@ fn parse_cache_time(s: &str) -> color_eyre::Result<u32> {
 pub struct Args {
     /// Directory to serve
     #[clap(default_value = ".", parse(try_from_os_str = parse_canonicalize_dir))]
-    pub dir: PathBuf,
+    pub dir: CanonicalizedPath,
 
     /// Sets the address to listen on (repeatable) [default: 127.0.0.1:3000]
     /// Valid: `3000`, `127.0.0.1`, `127.0.0.1:3000` [env: PORT]

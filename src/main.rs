@@ -2,19 +2,24 @@ use std::env;
 use std::ffi::OsStr;
 use std::io;
 use std::path::{Component, Path, PathBuf};
+use std::process;
 use std::sync::Arc;
+use std::time;
 
 use actix_web::http::{header, StatusCode};
 use actix_web::{guard, web, App, HttpServer};
 use actix_web::{HttpRequest, HttpResponse};
 use clap::Parser;
 use color_eyre::eyre::Result;
+use humantime::format_duration;
 use tracing::{debug, info};
 use tracing_subscriber::EnvFilter;
 
 mod cli;
 mod exit;
 mod middleware;
+#[macro_use]
+mod macros;
 
 // /a => a
 // a/../b => b
@@ -72,14 +77,18 @@ fn serve(
         }
     }
 
-    let mut path = state.args.dir.join(if path.as_os_str().is_empty() {
-        state.args.dir.join(&state.args.index)
-    } else {
-        state.args.dir.join(path).canonicalize().ok()?
-    });
+    let mut path = state
+        .args
+        .dir
+        .canonical
+        .join(if path.as_os_str().is_empty() {
+            state.args.dir.canonical.join(&state.args.index)
+        } else {
+            state.args.dir.canonical.join(path).canonicalize().ok()?
+        });
 
     if let PathSource::Client = source {
-        if !path.starts_with(&state.args.dir) && !state.args.follow_links {
+        if !path.starts_with(&state.args.dir.canonical) && !state.args.follow_links {
             return None;
         }
     }
@@ -93,7 +102,7 @@ fn serve(
     }
 
     if state.args.verbose {
-        debug!(target: "zy::serve", path=%path.strip_prefix(&state.args.dir).ok()?.display());
+        debug!(target: "zy::serve", path=%path.strip_prefix(&state.args.dir.canonical).ok()?.display());
     }
 
     let file = actix_files::NamedFile::open(&path).ok()?;
@@ -215,8 +224,6 @@ pub struct ServerState {
 async fn init_app() -> Result<()> {
     let mut args = cli::Args::parse();
 
-    info!(pid=?std::process::id());
-
     if let Ok(port) = env::var("PORT") {
         if let Err(_) = port.parse::<u16>() {
             eprintln!(
@@ -230,7 +237,28 @@ async fn init_app() -> Result<()> {
         args.listen.push(cli::addr_from_str("127.0.0.1").unwrap());
     }
 
-    debug!(args = %format!("{:#?}", args));
+    print_block! {
+        "Process ID" => process::id()
+        "Base Directory" => if args.dir.is_current_dir() {
+            format!("{} (current directory)", args.dir.raw.display())
+        } else {
+            args.dir.raw.display().to_string()
+        }
+        "Cache Time" => format_duration(time::Duration::from_secs(args.cache as u64))
+        "Single Page App?" => args.spa
+        "Index File" => args.index
+        "404 Fallback" => args.not_found
+        "Cross-Origin Resource Sharing" => if args.no_cors {
+            "disabled"
+        } else {
+            "(any domain)"
+        }
+        "Anonymize Server" => args.anonymize
+        "Will Serve Hidden Files" => args.all
+        "Follow Symlinks Outside Root" => args.follow_links
+        "Confirm Exit" => args.confirm_exit
+        "Be Verbose" => args.verbose
+    }
 
     let server_state = Arc::new(ServerState { args });
 
@@ -254,7 +282,7 @@ async fn init_app() -> Result<()> {
 
     for addr in &server_state.args.listen {
         server = server.bind(addr)?;
-        info!("Listening on http://{}", addr);
+        println!("Listening on http://{}", addr);
     }
 
     let server = server.run();

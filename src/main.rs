@@ -47,7 +47,7 @@ fn normalize_path<P: AsRef<Path>>(path: P) -> io::Result<PathBuf> {
 enum CachePolicy {
     NoCache,
     ShouldCache,
-    Undetermined,
+    Indeterminate,
 }
 
 enum PathSource {
@@ -122,7 +122,7 @@ fn serve(
             | (mime::TEXT, _)
             | (mime::FONT, _) => CachePolicy::ShouldCache,
             _ if matches!(ext, Some("otf") | Some("woff")) => CachePolicy::ShouldCache,
-            _ => CachePolicy::Undetermined,
+            _ => CachePolicy::Indeterminate,
         };
 
         let mut cache_directives = vec![];
@@ -140,7 +140,7 @@ fn serve(
                     header::CacheDirective::MaxAge(state.args.cache),
                 ]);
             }
-            CachePolicy::Undetermined => {}
+            CachePolicy::Indeterminate => {}
         }
 
         if let Ok((k, v)) =

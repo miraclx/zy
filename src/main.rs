@@ -234,21 +234,23 @@ async fn init_app() -> Result<()> {
 
     let server_state = Arc::new(ServerState { args });
 
-    let server_state_1 = server_state.clone();
-    let mut server = HttpServer::new(move || {
-        App::new()
-            .wrap(middleware::ZyServer {
-                anonymize: server_state_1.args.anonymize,
-            })
-            .app_data(web::Data::new(server_state_1.clone()))
-            .service(
-                web::resource("/{path:.*}")
-                    .guard(guard::Any(guard::Get()).or(guard::Head()))
-                    .wrap(middleware::Compress::default())
-                    .to(index),
-            )
-    })
-    .disable_signals();
+    let mut server = {
+        let server_state = server_state.clone();
+        HttpServer::new(move || {
+            App::new()
+                .wrap(middleware::ZyServer {
+                    anonymize: server_state.args.anonymize,
+                })
+                .app_data(web::Data::new(server_state.clone()))
+                .service(
+                    web::resource("/{path:.*}")
+                        .guard(guard::Any(guard::Get()).or(guard::Head()))
+                        .wrap(middleware::Compress::default())
+                        .to(index),
+                )
+        })
+        .disable_signals()
+    };
 
     for addr in &server_state.args.listen {
         server = server.bind(addr)?;

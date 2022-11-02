@@ -4,7 +4,6 @@ use std::io;
 use std::path::{Component, Path, PathBuf};
 use std::sync::Arc;
 
-use actix_files as fs;
 use actix_web::http::{header, StatusCode};
 use actix_web::{guard, web, App, HttpServer};
 use actix_web::{HttpRequest, HttpResponse};
@@ -97,7 +96,7 @@ fn serve(
         debug!(target: "zy::serve", path=%path.strip_prefix(&state.args.dir).ok()?.display());
     }
 
-    let file = fs::NamedFile::open(&path).ok()?;
+    let file = actix_files::NamedFile::open(&path).ok()?;
 
     let mut res = file
         .use_etag(true)

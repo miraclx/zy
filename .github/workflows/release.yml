@@ -113,7 +113,7 @@ jobs:
         case ${{ matrix.job.target }} in
           *-pc-windows-*)
               ZY_PKG_PATH="${ZY_PKG_BASENAME}.zip"
-              7z -y a "${ZY_PKG_PATH}" "${ZY_PKG_BASENAME}"/*
+              7z -y a "${ZY_PKG_PATH}" "${ZY_PKG_BASENAME}"/* | tail -2
             ;;
           *)
               ZY_PKG_PATH="${ZY_PKG_BASENAME}.tar.gz"

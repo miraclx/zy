@@ -117,7 +117,7 @@ jobs:
             ;;
           *)
               ZY_PKG_PATH="${ZY_PKG_BASENAME}.tar.gz"
-              tar czf "${ZY_PKG_PATH}" "${ZY_PKG_BASENAME}/*"
+              tar czf "${ZY_PKG_PATH}" "${ZY_PKG_BASENAME}"/*
             ;;
         esac
         echo "ZY_PKG_PATH=${ZY_PKG_PATH}" >> $GITHUB_ENV

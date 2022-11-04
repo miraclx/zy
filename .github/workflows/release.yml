@@ -1,0 +1,128 @@
+# Derived from:
+#  - https://github.com/BurntSushi/ripgrep/blob/000015791742bb1280f1853adb714fdee1ba9f8e/.github/workflows/release.yml
+#  - https://github.com/near/near-cli-rs/blob/a8679a3603015f1d651f874fdf0feff0d7514131/.github/workflows/release.yml
+#  - https://github.com/sharkdp/bat/blob/7c847d84b0c3c97df6badfbb39d153ad93aec74e/.github/workflows/CICD.yml
+
+name: release
+
+on:
+  push:
+    # Enable when testing release infrastructure on a branch.
+    branches:
+    - ci/release-check
+    tags:
+    - "[0-9]+.[0-9]+.[0-9]+"
+    - "[0-9]+.[0-9]+.[0-9]+-*"
+
+env:
+  # Emit backtraces on panics.
+  RUST_BACKTRACE: 1
+  # Set to force version number, e.g., when no tag exists.
+  ZY_VERSION: TEST-0.0.0
+    
+jobs:
+  build-release:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        job:
+          - { target: aarch64-unknown-linux-gnu   , os: ubuntu-20.04, use-cross: true }
+          - { target: arm-unknown-linux-gnueabihf , os: ubuntu-20.04, use-cross: true }
+          - { target: arm-unknown-linux-musleabihf, os: ubuntu-20.04, use-cross: true }
+          - { target: i686-pc-windows-msvc        , os: windows-2019                  }
+          - { target: i686-unknown-linux-gnu      , os: ubuntu-20.04, use-cross: true }
+          - { target: i686-unknown-linux-musl     , os: ubuntu-20.04, use-cross: true }
+          - { target: x86_64-apple-darwin         , os: macos-10.15                   }
+          - { target: x86_64-pc-windows-gnu       , os: windows-2019                  }
+          - { target: x86_64-pc-windows-msvc      , os: windows-2019                  }
+          - { target: x86_64-unknown-linux-gnu    , os: ubuntu-20.04, use-cross: true }
+          - { target: x86_64-unknown-linux-musl   , os: ubuntu-20.04, use-cross: true }
+
+    steps:
+    - name: Get the release version from the tag
+      shell: bash
+      if: env.ZY_VERSION == ''
+      run: |
+        # Apparently, this is the right way to get a tag name. Really?
+        #
+        # See: https://github.community/t5/GitHub-Actions/How-to-get-just-the-tag-name/m-p/32167/highlight/true#M1027
+        echo "ZY_VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+        echo "version is: ${{ env.ZY_VERSION }}"
+
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Install prerequisites
+      shell: bash
+      run: |
+        case ${{ matrix.job.target }} in
+          arm-unknown-linux-*) sudo apt-get -y update ; sudo apt-get -y gcc-arm-linux-gnueabihf ;;
+          aarch64-unknown-linux-gnu) sudo apt-get -y update ; sudo apt-get -y gcc-aarch64-linux-gnu ;;
+        esac
+
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: ${{ matrix.rust }}
+        target: ${{ matrix.target }}
+
+    - name: Build
+      uses: actions-rs/cargo@v1
+      with:
+        use-cross: ${{ matrix.job.use-cross }}
+        command: build
+        args: --verbose --locked --release --target=${{ matrix.job.target }}
+
+    - name: Strip debug information from executable
+      id: strip
+      shell: bash
+      run: |
+        # Figure out suffix of binary
+        EXE_suffix=""
+        case ${{ matrix.job.target }} in
+          *-pc-windows-*) EXE_suffix=".exe" ;;
+        esac;
+
+        # Figure out what strip tool to use if any
+        STRIP="strip"
+        case ${{ matrix.job.target }} in
+          arm-unknown-linux-*) STRIP="arm-linux-gnueabihf-strip" ;;
+          aarch64-unknown-linux-gnu) STRIP="aarch64-linux-gnu-strip" ;;
+          *-pc-windows-msvc) STRIP="" ;;
+        esac;
+        
+        ZY_BIN_PATH="target/${{ matrix.job.target }}/release/zy${EXE_suffix}"
+        
+        if [ -n "${STRIP}" ]; then
+          "${STRIP}" "${ZY_BIN_PATH}"
+        fi
+
+        echo "ZY_BIN_PATH=${ZY_BIN_PATH}" >> $GITHUB_ENV
+
+    - name: Build archive
+      shell: bash
+      run: |
+        # zy-v0.1.4-x86_64-unknown-linux-gnu
+        ZY_PKG_BASENAME="zy-${{ env.ZY_VERSION }}-${{ matrix.target }}"
+        mkdir "$ZY_PKG_BASENAME"
+
+        cp "${ZY_BIN_PATH}" "$ZY_PKG_BASENAME/"
+        cp README.md LICENSE-MIT LICENSE-APACHE "$ZY_PKG_BASENAME/"
+
+        case ${{ matrix.job.target }} in
+          *-pc-windows-*)
+              ZY_PKG_PATH="${ZY_PKG_BASENAME}.zip"
+              7z -y a "${ZY_PKG_PATH}" "${ZY_PKG_BASENAME}"/*
+            ;;
+          *)
+              ZY_PKG_PATH="${ZY_PKG_BASENAME}.tar.gz"
+              tar czf "${ZY_PKG_PATH}" "${ZY_PKG_BASENAME}/*"
+            ;;
+        esac
+        echo "ZY_PKG_PATH=${ZY_PKG_PATH}" >> $GITHUB_ENV
+
+    - name: Publish archives and packages
+      uses: softprops/action-gh-release@v1
+      with:
+        files: ${{ env.ZY_PKG_PATH }}
+        token: ${{ secrets.GITHUB_TOKEN }}

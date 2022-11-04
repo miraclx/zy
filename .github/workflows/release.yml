@@ -22,7 +22,7 @@ env:
     
 jobs:
   build-release:
-    name: ${{ matrix.name }}
+    name: ${{ matrix.job.name }}
     runs-on: ${{ matrix.job.os }}
     strategy:
       fail-fast: false

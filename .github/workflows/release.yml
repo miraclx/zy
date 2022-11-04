@@ -22,21 +22,22 @@ env:
     
 jobs:
   build-release:
-    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.job.os }}
     strategy:
       matrix:
         job:
-          - { target: aarch64-unknown-linux-gnu   , os: ubuntu-20.04, use-cross: true }
-          - { target: arm-unknown-linux-gnueabihf , os: ubuntu-20.04, use-cross: true }
-          - { target: arm-unknown-linux-musleabihf, os: ubuntu-20.04, use-cross: true }
-          - { target: i686-pc-windows-msvc        , os: windows-2019                  }
-          - { target: i686-unknown-linux-gnu      , os: ubuntu-20.04, use-cross: true }
-          - { target: i686-unknown-linux-musl     , os: ubuntu-20.04, use-cross: true }
-          - { target: x86_64-apple-darwin         , os: macos-10.15                   }
-          - { target: x86_64-pc-windows-gnu       , os: windows-2019                  }
-          - { target: x86_64-pc-windows-msvc      , os: windows-2019                  }
-          - { target: x86_64-unknown-linux-gnu    , os: ubuntu-20.04, use-cross: true }
-          - { target: x86_64-unknown-linux-musl   , os: ubuntu-20.04, use-cross: true }
+          - { name: 'linux-aarch64-gnu', target: aarch64-unknown-linux-gnu   , os: ubuntu-20.04, use-cross: true }
+          - { name: 'linux-arm-gnu'    , target: arm-unknown-linux-gnueabihf , os: ubuntu-20.04, use-cross: true }
+          - { name: 'linux-arm-musl'   , target: arm-unknown-linux-musleabihf, os: ubuntu-20.04, use-cross: true }
+          - { name: 'win32-msvc'       , target: i686-pc-windows-msvc        , os: windows-2019                  }
+          - { name: 'linux-i686-gnu'   , target: i686-unknown-linux-gnu      , os: ubuntu-20.04, use-cross: true }
+          - { name: 'linux-i686-musl'  , target: i686-unknown-linux-musl     , os: ubuntu-20.04, use-cross: true }
+          - { name: 'macos-x86_64'     , target: x86_64-apple-darwin         , os: macos-10.15                   }
+          - { name: 'win64-gnu'        , target: x86_64-pc-windows-gnu       , os: windows-2019                  }
+          - { name: 'win64-msvc'       , target: x86_64-pc-windows-msvc      , os: windows-2019                  }
+          - { name: 'linux-x86_64-gnu' , target: x86_64-unknown-linux-gnu    , os: ubuntu-20.04, use-cross: true }
+          - { name: 'linux-x86_64-musl', target: x86_64-unknown-linux-musl   , os: ubuntu-20.04, use-cross: true }
 
     steps:
     - name: Get the release version from the tag
@@ -61,10 +62,9 @@ jobs:
         esac
 
     - name: Install Rust
-      uses: dtolnay/rust-toolchain@master
+      uses: dtolnay/rust-toolchain@stable
       with:
-        toolchain: ${{ matrix.rust }}
-        target: ${{ matrix.target }}
+        target: ${{ matrix.job.target }}
 
     - name: Build
       uses: actions-rs/cargo@v1
@@ -103,7 +103,7 @@ jobs:
       shell: bash
       run: |
         # zy-v0.1.4-x86_64-unknown-linux-gnu
-        ZY_PKG_BASENAME="zy-${{ env.ZY_VERSION }}-${{ matrix.target }}"
+        ZY_PKG_BASENAME="zy-${{ env.ZY_VERSION }}-${{ matrix.job.target }}"
         mkdir "$ZY_PKG_BASENAME"
 
         cp "${ZY_BIN_PATH}" "$ZY_PKG_BASENAME/"

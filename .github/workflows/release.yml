@@ -11,8 +11,8 @@ on:
     branches:
     - ci/release-check
     tags:
-    - "[0-9]+.[0-9]+.[0-9]+"
-    - "[0-9]+.[0-9]+.[0-9]+-*"
+    - "v[0-9]+.[0-9]+.[0-9]+"
+    - "v[0-9]+.[0-9]+.[0-9]+-*"
 
 env:
   # Emit backtraces on panics.
@@ -125,5 +125,6 @@ jobs:
     - name: Publish archives and packages
       uses: softprops/action-gh-release@v1
       with:
+        tag_name: ${{ env.ZY_VERSION }}
         files: ${{ env.ZY_PKG_PATH }}
         token: ${{ secrets.GITHUB_TOKEN }}

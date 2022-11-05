@@ -2,6 +2,7 @@
 #  - https://github.com/BurntSushi/ripgrep/blob/000015791742bb1280f1853adb714fdee1ba9f8e/.github/workflows/release.yml
 #  - https://github.com/near/near-cli-rs/blob/a8679a3603015f1d651f874fdf0feff0d7514131/.github/workflows/release.yml
 #  - https://github.com/sharkdp/bat/blob/7c847d84b0c3c97df6badfbb39d153ad93aec74e/.github/workflows/CICD.yml
+#  - https://github.com/near/near-jsonrpc-client-rs/blob/2a9cce4710bb87592baf5d7ca7015e3d474584e9/.github/workflows/ci.yml
 
 name: release
 
@@ -53,6 +54,9 @@ jobs:
 
     - name: Checkout repository
       uses: actions/checkout@v3
+      with:
+        # might be a simple `fetch-tags: true` option soon, see https://github.com/actions/checkout/pull/579
+        fetch-depth: 0
 
     - name: Install prerequisites
       shell: bash
@@ -105,10 +109,10 @@ jobs:
       run: |
         # zy-v0.1.4-x86_64-unknown-linux-gnu
         ZY_PKG_BASENAME="zy-${{ env.ZY_VERSION }}-${{ matrix.job.target }}"
-        mkdir "$ZY_PKG_BASENAME"
+        mkdir "${ZY_PKG_BASENAME}"
 
-        cp "${ZY_BIN_PATH}" "$ZY_PKG_BASENAME/"
-        cp README.md CHANGELOG.md LICENSE-MIT LICENSE-APACHE "$ZY_PKG_BASENAME/"
+        cp "${ZY_BIN_PATH}" "${ZY_PKG_BASENAME}/"
+        cp README.md CHANGELOG.md LICENSE-MIT LICENSE-APACHE "${ZY_PKG_BASENAME}/"
 
         case ${{ matrix.job.target }} in
           *-pc-windows-*)
@@ -122,9 +126,59 @@ jobs:
         esac
         echo "ZY_PKG_PATH=${ZY_PKG_PATH}" >> $GITHUB_ENV
 
+    - name: Extract release notes
+      id: extract-release-notes
+      uses: ffurrer2/extract-release-notes@c24866884b7a0d2fd2095be2e406b6f260479da8
+
+    - name: Get Contributors
+      id: get-contributors
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        DEFAULT_RELEASE_NOTE="$(
+          gh api \
+            /repos/${{ github.repository }}/releases/generate-notes \
+            -f tag_name='${{ env.ZY_VERSION }}' \
+            -q .body \
+        )"
+        echo "Default Release Note"
+        echo "${DEFAULT_RELEASE_NOTE}"
+        echo
+        CONTRIBUTORS="$(
+          <<< "${DEFAULT_RELEASE_NOTE}" \
+          perl -ne 'print if s/.+ by (@[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38}) in https.+$/\1/i' \
+          | sort -u \
+        )"
+        echo "Contributors"
+        echo "${CONTRIBUTORS}"
+        echo
+        PRETTY_CONTRIBUTOR_LIST="$(
+          xargs <<< "${CONTRIBUTORS}" \
+          | sed 's/ /, /g;s/\(.*\), \(.*\)$/\1 and \2/' \
+        )"
+        echo "Prettified Contributors"
+        echo "${PRETTY_CONTRIBUTOR_LIST}"
+        echo
+        echo "PRETTY_CONTRIBUTOR_LIST=${PRETTY_CONTRIBUTOR_LIST}" >> $GITHUB_ENV
+
+    - name: Check Current Latest Tag
+      run: |
+        export GIT_PREVIOUS_TAG="$(git describe --tags --abbrev=0 --match 'v[0-9]*.[0-9]*.[0-9]*')"
+        echo "GIT_PREVIOUS_TAG=${GIT_PREVIOUS_TAG}" >> $GITHUB_ENV
+        echo "Current latest git release tag is \"${GIT_PREVIOUS_TAG}\""
+
     - name: Publish archives and packages
       uses: softprops/action-gh-release@v1
       with:
         tag_name: ${{ env.ZY_VERSION }}
         files: ${{ env.ZY_PKG_PATH }}
         token: ${{ secrets.GITHUB_TOKEN }}
+        body: |
+          ## What's changed in ${{ matrix.job.target }}?
+        
+          ${{ steps.extract-release-notes.outputs.release_notes }}
+
+          **Full Changelog**: https://github.com/${{ github.repository }}/compare/${{ env.GIT_PREVIOUS_TAG }}...${{ env.ZY_VERSION }}
+          <sup>
+          🎉  Thanks to ${{ env.PRETTY_CONTRIBUTOR_LIST }} for their contributions to this release. 🎉
+          </sup>

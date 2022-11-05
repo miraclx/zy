@@ -93,7 +93,7 @@ jobs:
       with:
         use-cross: ${{ matrix.job.use-cross }}
         command: build
-        args: --verbose --locked --release --target=${{ matrix.job.target }}
+        args: --verbose --locked --profile ci-build --target=${{ matrix.job.target }}
 
     - name: Strip debug information from executable
       id: strip
@@ -103,7 +103,7 @@ jobs:
         EXE_suffix=""
         case ${{ matrix.job.target }} in
           *-pc-windows-*) EXE_suffix=".exe" ;;
-        esac;
+        esac
 
         # Figure out what strip tool to use if any
         STRIP="strip"
@@ -111,7 +111,7 @@ jobs:
           arm-unknown-linux-*) STRIP="arm-linux-gnueabihf-strip" ;;
           aarch64-unknown-linux-gnu) STRIP="aarch64-linux-gnu-strip" ;;
           *-pc-windows-msvc) STRIP="" ;;
-        esac;
+        esac
         
         ZY_BIN_PATH="target/${{ matrix.job.target }}/release/zy${EXE_suffix}"
         

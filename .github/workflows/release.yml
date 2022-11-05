@@ -46,11 +46,12 @@ jobs:
     - name: Get Project Name
       run: |
         PROJECT_NAME=$(sed -n 's/^name = "\(.*\)"/\1/p' Cargo.toml | head -n1)
+        echo "Project Name: $PROJECT_NAME"
 
         if [[ "${PROJECT_INDEX_URL}" == *"${PROJECT_NAME}" ]]; then
           echo "PROJECT_NAME=${PROJECT_NAME}" >> $GITHUB_ENV
         else
-          echo "Project name [${PROJECT_NAME}] does not match the index URL [${PROJECT_INDEX_URL}]."
+          echo "Project name does not match the index URL [${PROJECT_INDEX_URL}]."
           exit 1
         fi
 
@@ -61,7 +62,7 @@ jobs:
         echo "Project version: ${PROJECT_VERSION}"
 
         CRATE_VERSIONS=$(curl -s "${PROJECT_INDEX_URL}" | jq -r '.vers')
-        echo "Crate versions: ${CRATE_VERSIONS}"
+        echo "Already published versions:\n${CRATE_VERSIONS}"
         if echo "${CRATE_VERSIONS}" | grep -q "^${PROJECT_VERSION}$"; then
           echo "Project version [${PROJECT_VERSION}] has already been released."
           HAS_RELEASED=true
@@ -71,8 +72,10 @@ jobs:
         fi
 
         if [[ "${PROJECT_VERSION}" == *-* ]]; then
+          echo "Project version [${PROJECT_VERSION}] is a pre-release."
           IS_PRERELEASE=true
         else
+          echo "Project version [${PROJECT_VERSION}] is not a pre-release."
           IS_PRERELEASE=false
         fi
 

@@ -136,8 +136,7 @@ jobs:
         CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
   binary:
-    # name: binary (${{ matrix.job.name }})
-    runs-on: ${{ matrix.job.os }}
+    runs-on: ${{ matrix.os }}
     needs: check
     # if: needs.check.outputs.should_release_binary == 'true'
     env:
@@ -151,23 +150,30 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        job:
-          - { name: 'linux-aarch64-gnu', target: aarch64-unknown-linux-gnu   , os: ubuntu-latest , use-cross: true }
-          - { name: 'linux-arm-gnu'    , target: arm-unknown-linux-gnueabihf , os: ubuntu-latest , use-cross: true }
-          - { name: 'linux-arm-musl'   , target: arm-unknown-linux-musleabihf, os: ubuntu-latest , use-cross: true }
-          - { name: 'win32-msvc'       , target: i686-pc-windows-msvc        , os: windows-latest,                 }
-          - { name: 'linux-i686-gnu'   , target: i686-unknown-linux-gnu      , os: ubuntu-latest , use-cross: true }
-          - { name: 'linux-i686-musl'  , target: i686-unknown-linux-musl     , os: ubuntu-latest , use-cross: true }
-          - { name: 'macos-x86_64'     , target: x86_64-apple-darwin         , os: macos-latest  ,                 }
-          - { name: 'win64-gnu'        , target: x86_64-pc-windows-gnu       , os: windows-latest,                 }
-          - { name: 'win64-msvc'       , target: x86_64-pc-windows-msvc      , os: windows-latest,                 }
-          - { name: 'linux-x86_64-gnu' , target: x86_64-unknown-linux-gnu    , os: ubuntu-latest , use-cross: true }
-          - { name: 'linux-x86_64-musl', target: x86_64-unknown-linux-musl   , os: ubuntu-latest , use-cross: true }
+        name: [
+          # aaarch64
+          linux-aarch64-gnu,
+          # arm
+          linux-arm-gnu, linux-arm-musl,
+          # i686
+          win32-msvc, linux-i686-gnu, linux-i686-musl,
+          # x86_64
+          macos-x86_64, win64-gnu, win64-msvc, linux-x86_64-gnu, linux-x86_64-musl
+        ]
+        include:
+        - { name: 'linux-aarch64-gnu', target: aarch64-unknown-linux-gnu   , os: ubuntu-latest , use-cross: true }
+        - { name: 'linux-arm-gnu'    , target: arm-unknown-linux-gnueabihf , os: ubuntu-latest , use-cross: true }
+        - { name: 'linux-arm-musl'   , target: arm-unknown-linux-musleabihf, os: ubuntu-latest , use-cross: true }
+        - { name: 'win32-msvc'       , target: i686-pc-windows-msvc        , os: windows-latest,                 }
+        - { name: 'linux-i686-gnu'   , target: i686-unknown-linux-gnu      , os: ubuntu-latest , use-cross: true }
+        - { name: 'linux-i686-musl'  , target: i686-unknown-linux-musl     , os: ubuntu-latest , use-cross: true }
+        - { name: 'macos-x86_64'     , target: x86_64-apple-darwin         , os: macos-latest  ,                 }
+        - { name: 'win64-gnu'        , target: x86_64-pc-windows-gnu       , os: windows-latest,                 }
+        - { name: 'win64-msvc'       , target: x86_64-pc-windows-msvc      , os: windows-latest,                 }
+        - { name: 'linux-x86_64-gnu' , target: x86_64-unknown-linux-gnu    , os: ubuntu-latest , use-cross: true }
+        - { name: 'linux-x86_64-musl', target: x86_64-unknown-linux-musl   , os: ubuntu-latest , use-cross: true }
 
     steps:
-    - shell: bash
-      run: echo "::job-name::binary (${{ matrix.job.name }})"
-
     - shell: bash
       run: exit 1
 
@@ -177,7 +183,7 @@ jobs:
     - name: Install prerequisites
       shell: bash
       run: |
-        case ${{ matrix.job.target }} in
+        case ${{ matrix.target }} in
           arm-unknown-linux-*) sudo apt-get -y update ; sudo apt-get -y install gcc-arm-linux-gnueabihf ;;
           aarch64-unknown-linux-gnu) sudo apt-get -y update ; sudo apt-get -y install gcc-aarch64-linux-gnu ;;
         esac
@@ -185,32 +191,32 @@ jobs:
     - name: Install rust
       uses: dtolnay/rust-toolchain@stable
       with:
-        target: ${{ matrix.job.target }}
+        target: ${{ matrix.target }}
 
     - name: Build
       uses: actions-rs/cargo@v1
       with:
-        use-cross: ${{ matrix.job.use-cross }}
+        use-cross: ${{ matrix.use-cross }}
         command: build
-        args: --verbose --locked --profile ci-build --target=${{ matrix.job.target }}
+        args: --verbose --locked --profile ci-build --target=${{ matrix.target }}
 
     - name: Strip debug information from executable
       id: strip
       shell: bash
       run: |
         EXE_suffix=""
-        case ${{ matrix.job.target }} in
+        case ${{ matrix.target }} in
           *-pc-windows-*) EXE_suffix=".exe" ;;
         esac
 
         STRIP="strip"
-        case ${{ matrix.job.target }} in
+        case ${{ matrix.target }} in
           arm-unknown-linux-*) STRIP="arm-linux-gnueabihf-strip" ;;
           aarch64-unknown-linux-gnu) STRIP="aarch64-linux-gnu-strip" ;;
           *-pc-windows-msvc) STRIP="" ;;
         esac
 
-        PROJECT_BIN_PATH="target/${{ matrix.job.target }}/ci-build/${{ env.PROJECT_NAME }}${EXE_suffix}"
+        PROJECT_BIN_PATH="target/${{ matrix.target }}/ci-build/${{ env.PROJECT_NAME }}${EXE_suffix}"
 
         if [ -n "${STRIP}" ]; then
           "${STRIP}" "${PROJECT_BIN_PATH}"
@@ -221,13 +227,13 @@ jobs:
     - name: Build archive
       shell: bash
       run: |
-        PKG_BASENAME="${{ env.PROJECT_NAME }}-${{ env.PROJECT_VERSION }}-${{ matrix.job.target }}"
+        PKG_BASENAME="${{ env.PROJECT_NAME }}-${{ env.PROJECT_VERSION }}-${{ matrix.target }}"
         mkdir "${PKG_BASENAME}"
 
         cp "${PROJECT_BIN_PATH}" "${PKG_BASENAME}/"
         cp README.md CHANGELOG.md LICENSE-MIT LICENSE-APACHE "${PKG_BASENAME}/"
 
-        case ${{ matrix.job.target }} in
+        case ${{ matrix.target }} in
           *-pc-windows-*)
               PKG_PATH="${PKG_BASENAME}.zip"
               7z -y a "${PKG_PATH}" "${PKG_BASENAME}"/* | tail -2

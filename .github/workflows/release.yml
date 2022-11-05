@@ -155,11 +155,11 @@ jobs:
       run: |
         gh --version
         DEFAULT_RELEASE_NOTE="$(
-          gh api \
-            /repos/${{ github.repository }}/releases/generate-notes \
-            -f tag_name='${{ env.ZY_VERSION }}' \
-            -f target_commitish='${{ github.sha }}' \
-            -q .body \
+          curl -v \
+            https://api.github.com/repos/miraclx/zy/releases/generate-notes \
+            -H 'Authorization: token ${{ github.token }}' \
+            -d '{"tag_name":"${{ env.ZY_VERSION }}","target_commitish":"${{ github.sha }}"}' \
+          | jq .body
         )"
         echo "Default Release Note"
         echo "${DEFAULT_RELEASE_NOTE}"

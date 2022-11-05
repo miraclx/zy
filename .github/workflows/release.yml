@@ -153,7 +153,6 @@ jobs:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       shell: bash
       run: |
-        gh --version
         DEFAULT_RELEASE_NOTE="$(
           curl -v \
             https://api.github.com/repos/miraclx/zy/releases/generate-notes \

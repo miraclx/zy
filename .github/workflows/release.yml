@@ -139,7 +139,7 @@ jobs:
     # name: binary (${{ matrix.job.name }})
     runs-on: ${{ matrix.job.os }}
     needs: check
-    if: needs.check.outputs.should_release_binary == 'true'
+    # if: needs.check.outputs.should_release_binary == 'true'
     env:
       STEP_NAME: binary
       PROJECT_NAME: ${{ needs.check.outputs.project_name }}
@@ -167,6 +167,9 @@ jobs:
     steps:
     - shell: bash
       run: echo "::job-name::binary (${{ matrix.job.name }})"
+
+    - shell: bash
+      run: exit 1
 
     - name: Checkout repository
       uses: actions/checkout@v3

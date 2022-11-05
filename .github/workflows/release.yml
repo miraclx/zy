@@ -128,6 +128,8 @@ jobs:
     - name: Install rust
       uses: dtolnay/rust-toolchain@stable
 
+    - uses: Swatinem/rust-cache@v2
+
     - uses: actions-rs/cargo@v1
       with:
         command: publish
@@ -161,18 +163,18 @@ jobs:
           macos-x86_64, win64-gnu, win64-msvc, linux-x86_64-gnu, linux-x86_64-musl
         ]
         include:
-        - { name: 'linux-aarch64-gnu', target: aarch64-unknown-linux-gnu   , os: ubuntu-latest  }
+        - { name: 'linux-aarch64-gnu', target: aarch64-unknown-linux-gnu   , os: ubuntu-latest , use-cross: true }
         - { name: 'macos-aarch64'    , target: aarch64-apple-darwin        , os: macos-latest  ,                 }
-        - { name: 'linux-arm-gnu'    , target: arm-unknown-linux-gnueabihf , os: ubuntu-latest  }
-        - { name: 'linux-arm-musl'   , target: arm-unknown-linux-musleabihf, os: ubuntu-latest  }
+        - { name: 'linux-arm-gnu'    , target: arm-unknown-linux-gnueabihf , os: ubuntu-latest , use-cross: true }
+        - { name: 'linux-arm-musl'   , target: arm-unknown-linux-musleabihf, os: ubuntu-latest , use-cross: true }
         - { name: 'win32-msvc'       , target: i686-pc-windows-msvc        , os: windows-latest,                 }
-        - { name: 'linux-i686-gnu'   , target: i686-unknown-linux-gnu      , os: ubuntu-latest  }
-        - { name: 'linux-i686-musl'  , target: i686-unknown-linux-musl     , os: ubuntu-latest  }
+        - { name: 'linux-i686-gnu'   , target: i686-unknown-linux-gnu      , os: ubuntu-latest , use-cross: true }
+        - { name: 'linux-i686-musl'  , target: i686-unknown-linux-musl     , os: ubuntu-latest , use-cross: true }
         - { name: 'macos-x86_64'     , target: x86_64-apple-darwin         , os: macos-latest  ,                 }
         - { name: 'win64-gnu'        , target: x86_64-pc-windows-gnu       , os: windows-latest,                 }
         - { name: 'win64-msvc'       , target: x86_64-pc-windows-msvc      , os: windows-latest,                 }
-        - { name: 'linux-x86_64-gnu' , target: x86_64-unknown-linux-gnu    , os: ubuntu-latest  }
-        - { name: 'linux-x86_64-musl', target: x86_64-unknown-linux-musl   , os: ubuntu-latest  }
+        - { name: 'linux-x86_64-gnu' , target: x86_64-unknown-linux-gnu    , os: ubuntu-latest                   }
+        - { name: 'linux-x86_64-musl', target: x86_64-unknown-linux-musl   , os: ubuntu-latest , use-cross: true }
 
     steps:
     - name: Checkout repository
@@ -203,7 +205,6 @@ jobs:
         args: --verbose --locked --profile ci-build --target=${{ matrix.target }}
 
     - name: Strip debug information from executable
-      id: strip
       shell: bash
       run: |
         EXE_suffix=""
@@ -220,9 +221,9 @@ jobs:
 
         PROJECT_BIN_PATH="target/${{ matrix.target }}/ci-build/${{ env.PROJECT_NAME }}${EXE_suffix}"
 
-        if [ -n "${STRIP}" ]; then
-          "${STRIP}" "${PROJECT_BIN_PATH}"
-        fi
+        # if [ -n "${STRIP}" ]; then
+        #   "${STRIP}" "${PROJECT_BIN_PATH}"
+        # fi
 
         echo "PROJECT_BIN_PATH=${PROJECT_BIN_PATH}" >> $GITHUB_ENV
 
@@ -252,7 +253,6 @@ jobs:
       uses: ffurrer2/extract-release-notes@c24866884b7a0d2fd2095be2e406b6f260479da8
 
     - name: Get contributors
-      id: get-contributors
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       shell: bash

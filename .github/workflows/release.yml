@@ -19,7 +19,7 @@ env:
   # Emit backtraces on panics.
   RUST_BACKTRACE: 1
   # Set to force version number, e.g., when no tag exists.
-  ZY_VERSION: v0.1.5
+  ZY_VERSION: v0.1.6
     
 jobs:
   crate:

@@ -134,6 +134,7 @@ jobs:
       id: get-contributors
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      shell: bash
       run: |
         DEFAULT_RELEASE_NOTE="$(
           gh api \
@@ -162,6 +163,7 @@ jobs:
         echo "PRETTY_CONTRIBUTOR_LIST=${PRETTY_CONTRIBUTOR_LIST}" >> $GITHUB_ENV
 
     - name: Check Current Latest Tag
+      shell: bash
       run: |
         export GIT_PREVIOUS_TAG="$(git describe --tags --abbrev=0 --match 'v[0-9]*.[0-9]*.[0-9]*')"
         echo "GIT_PREVIOUS_TAG=${GIT_PREVIOUS_TAG}" >> $GITHUB_ENV

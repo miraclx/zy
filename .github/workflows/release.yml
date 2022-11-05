@@ -161,18 +161,18 @@ jobs:
           macos-x86_64, win64-gnu, win64-msvc, linux-x86_64-gnu, linux-x86_64-musl
         ]
         include:
-        - { name: 'linux-aarch64-gnu', target: aarch64-unknown-linux-gnu   , os: ubuntu-latest , use-cross: true }
+        - { name: 'linux-aarch64-gnu', target: aarch64-unknown-linux-gnu   , os: ubuntu-latest  }
         - { name: 'macos-aarch64'    , target: aarch64-apple-darwin        , os: macos-latest  ,                 }
-        - { name: 'linux-arm-gnu'    , target: arm-unknown-linux-gnueabihf , os: ubuntu-latest , use-cross: true }
-        - { name: 'linux-arm-musl'   , target: arm-unknown-linux-musleabihf, os: ubuntu-latest , use-cross: true }
+        - { name: 'linux-arm-gnu'    , target: arm-unknown-linux-gnueabihf , os: ubuntu-latest  }
+        - { name: 'linux-arm-musl'   , target: arm-unknown-linux-musleabihf, os: ubuntu-latest  }
         - { name: 'win32-msvc'       , target: i686-pc-windows-msvc        , os: windows-latest,                 }
-        - { name: 'linux-i686-gnu'   , target: i686-unknown-linux-gnu      , os: ubuntu-latest , use-cross: true }
-        - { name: 'linux-i686-musl'  , target: i686-unknown-linux-musl     , os: ubuntu-latest , use-cross: true }
+        - { name: 'linux-i686-gnu'   , target: i686-unknown-linux-gnu      , os: ubuntu-latest  }
+        - { name: 'linux-i686-musl'  , target: i686-unknown-linux-musl     , os: ubuntu-latest  }
         - { name: 'macos-x86_64'     , target: x86_64-apple-darwin         , os: macos-latest  ,                 }
         - { name: 'win64-gnu'        , target: x86_64-pc-windows-gnu       , os: windows-latest,                 }
         - { name: 'win64-msvc'       , target: x86_64-pc-windows-msvc      , os: windows-latest,                 }
-        - { name: 'linux-x86_64-gnu' , target: x86_64-unknown-linux-gnu    , os: ubuntu-latest , use-cross: true }
-        - { name: 'linux-x86_64-musl', target: x86_64-unknown-linux-musl   , os: ubuntu-latest , use-cross: true }
+        - { name: 'linux-x86_64-gnu' , target: x86_64-unknown-linux-gnu    , os: ubuntu-latest  }
+        - { name: 'linux-x86_64-musl', target: x86_64-unknown-linux-musl   , os: ubuntu-latest  }
 
     steps:
     - name: Checkout repository

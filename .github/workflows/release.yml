@@ -113,7 +113,7 @@ jobs:
           *-pc-windows-msvc) STRIP="" ;;
         esac
         
-        ZY_BIN_PATH="target/${{ matrix.job.target }}/release/zy${EXE_suffix}"
+        ZY_BIN_PATH="target/${{ matrix.job.target }}/ci-build/zy${EXE_suffix}"
         
         if [ -n "${STRIP}" ]; then
           "${STRIP}" "${ZY_BIN_PATH}"

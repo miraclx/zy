@@ -33,11 +33,11 @@ jobs:
       project_name: ${{ env.PROJECT_NAME }}
       project_version: ${{ env.PROJECT_VERSION }}
       is_prerelease: ${{ env.IS_PRERELEASE }}
-      has_released: ${{ env.HAS_RELEASED }}
-      publish_crate: ${{ env.HAS_RELEASED == 'false' && github.event_name != 'workflow_dispatch' }}
+      has_released_crate: ${{ env.HAS_RELEASED_CRATE }}
+      should_publish_crate: ${{ env.HAS_RELEASED_CRATE == 'false' && github.event_name != 'workflow_dispatch' }}
       git_previous_tag: ${{ env.GIT_PREVIOUS_TAG }}
     env:
-      HAS_RELEASED: false
+      HAS_RELEASED_CRATE: false
       PROJECT_VERSION: ${{ github.event.inputs.project-version }}
       IS_PRERELEASE: ${{ github.event.inputs.is-pre-release }}
 
@@ -77,10 +77,10 @@ jobs:
         echo "Already published versions:\n${CRATE_VERSIONS}"
         if echo "${CRATE_VERSIONS}" | grep -q "^${PROJECT_VERSION}$"; then
           echo "Project version [${PROJECT_VERSION}] has already been released."
-          HAS_RELEASED=true
+          HAS_RELEASED_CRATE=true
         else
           echo "Project version [${PROJECT_VERSION}] has not been released."
-          HAS_RELEASED=false
+          HAS_RELEASED_CRATE=false
         fi
 
         if [[ "${PROJECT_VERSION}" == *-* ]]; then
@@ -92,13 +92,13 @@ jobs:
         fi
 
         echo "PROJECT_VERSION=${PROJECT_VERSION}" >> $GITHUB_ENV
+        echo "HAS_RELEASED_CRATE=${HAS_RELEASED_CRATE}" >> $GITHUB_ENV
         echo "IS_PRERELEASE=${IS_PRERELEASE}" >> $GITHUB_ENV
-        echo "HAS_RELEASED=${HAS_RELEASED}" >> $GITHUB_ENV
 
   crate:
     runs-on: ubuntu-latest
     needs: check
-    if: needs.check.outputs.publish_crate == 'true'
+    if: needs.check.outputs.should_publish_crate == 'true'
 
     steps:
     - name: Checkout repository
@@ -123,8 +123,8 @@ jobs:
       PROJECT_VERSION: v${{ needs.check.outputs.project_version }}
       RAW_PROJECT_VERSION: ${{ needs.check.outputs.project_version }}
       IS_PRERELEASE: ${{ needs.check.outputs.is_prerelease }}
-      HAS_RELEASED: ${{ needs.check.outputs.has_released }}
-      PUBLISH_CRATE: ${{ needs.check.outputs.publish_crate }}
+      HAS_RELEASED_CRATE: ${{ needs.check.outputs.has_released_crate }}
+      SHOULD_PUBLISH_CRATE: ${{ needs.check.outputs.should_publish_crate }}
       GIT_PREVIOUS_TAG: ${{ needs.check.outputs.git_previous_tag }}
     strategy:
       fail-fast: false
@@ -260,7 +260,7 @@ jobs:
           echo "PRETTY_CONTRIBUTOR_LINE=${PRETTY_CONTRIBUTOR_LINE}" >> $GITHUB_ENV
         fi
 
-        if [[ "${{ env.PUBLISH_CRATE }}" == "true" ]]; then
+        if [[ "${{ env.SHOULD_PUBLISH_CRATE }}" == "true" ]]; then
           CRATE_LINE="**Crate Link**: https://crates.io/crates/${{ env.PROJECT_NAME }}/${{ env.RAW_PROJECT_VERSION }}"
           echo "CRATE_LINE=${CRATE_LINE}" >> $GITHUB_ENV
         fi

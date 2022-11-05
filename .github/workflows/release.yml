@@ -8,22 +8,82 @@ name: release
 
 on:
   push:
-    # Enable when testing release infrastructure on a branch.
     branches:
+    # - master
     - ci/release-check
-    tags:
-    - "v[0-9]+.[0-9]+.[0-9]+"
-    - "v[0-9]+.[0-9]+.[0-9]+-*"
+  workflow_dispatch:
+    inputs:
+      project-version:
+        description: 'Version to release on GitHub'
+        required: true
+        type: string
+      is-pre-release:
+        description: 'Is this a pre-release?'
+        required: true
+        type: boolean
 
 env:
-  # Emit backtraces on panics.
-  RUST_BACKTRACE: 1
-  # Set to force version number, e.g., when no tag exists.
-  ZY_VERSION: v0.1.6
+  PROJECT_INDEX_URL: https://raw.githubusercontent.com/rust-lang/crates.io-index/master/2/zy
+  RUST_BACKTRACE: 1 # Emit backtraces on panics.
     
 jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      project_name: ${{ env.PROJECT_NAME }}
+      project_version: ${{ env.PROJECT_VERSION }}
+      is_prerelease: ${{ env.IS_PRERELEASE }}
+      has_released: ${{ env.HAS_RELEASED }}
+    env:
+      HAS_RELEASED: false
+      PROJECT_VERSION: ${{ github.event.inputs.project-version }}
+      IS_PRERELEASE: ${{ github.event.inputs.is-pre-release }}
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Get Project Name
+      run: |
+        PROJECT_NAME=$(sed -n 's/^name = "\(.*\)"/\1/p' Cargo.toml | head -n1)
+
+        if [[ "${PROJECT_INDEX_URL}" == *"${PROJECT_NAME}" ]]; then
+          echo "PROJECT_NAME=${PROJECT_NAME}" >> $GITHUB_ENV
+        else
+          echo "Project name [${PROJECT_NAME}] does not match the index URL [${PROJECT_INDEX_URL}]."
+          exit 1
+        fi
+
+    - name: Version Introspection
+      if: env.PROJECT_VERSION == ''
+      run: |
+        PROJECT_VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)
+        echo "Project version: ${PROJECT_VERSION}"
+
+        CRATE_VERSIONS=$(curl -s "${PROJECT_INDEX_URL}" | jq -r '.vers')
+        echo "Crate versions: ${CRATE_VERSIONS}"
+        if echo "${CRATE_VERSIONS}" | grep -q "^${PROJECT_VERSION}$"; then
+          echo "Project version [${PROJECT_VERSION}] has already been released."
+          HAS_RELEASED=true
+        else
+          echo "Project version [${PROJECT_VERSION}] has not been released."
+          HAS_RELEASED=false
+        fi
+
+        if [[ "${PROJECT_VERSION}" == *-* ]]; then
+          IS_PRERELEASE=true
+        else
+          IS_PRERELEASE=false
+        fi
+
+        echo "PROJECT_VERSION=v${PROJECT_VERSION}" >> $GITHUB_ENV
+        echo "IS_PRERELEASE=${IS_PRERELEASE}" >> $GITHUB_ENV
+        echo "HAS_RELEASED=${HAS_RELEASED}" >> $GITHUB_ENV
+
   crate:
     runs-on: ubuntu-latest
+    needs: check
+    if: ${{ needs.check.outputs.has_released }} == 'false' && ${{ github.event_name }} != 'workflow_dispatch'
 
     steps:
     - name: Checkout repository
@@ -42,6 +102,12 @@ jobs:
   binary:
     name: binary (${{ matrix.job.name }})
     runs-on: ${{ matrix.job.os }}
+    needs: check
+    env:
+      PROJECT_NAME: ${{ needs.check.outputs.project_name }}
+      PROJECT_VERSION: ${{ needs.check.outputs.project_version }}
+      IS_PRERELEASE: ${{ needs.check.outputs.is_prerelease }}
+      HAS_RELEASED: ${{ needs.check.outputs.has_released }}
     strategy:
       fail-fast: false
       matrix:
@@ -59,16 +125,6 @@ jobs:
           - { name: 'linux-x86_64-musl', target: x86_64-unknown-linux-musl   , os: ubuntu-latest , use-cross: true }
 
     steps:
-    - name: Get the release version from the tag
-      shell: bash
-      if: env.ZY_VERSION == ''
-      run: |
-        # Apparently, this is the right way to get a tag name. Really?
-        #
-        # See: https://github.community/t5/GitHub-Actions/How-to-get-just-the-tag-name/m-p/32167/highlight/true#M1027
-        echo "ZY_VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-        echo "version is: ${{ env.ZY_VERSION }}"
-
     - name: Checkout repository
       uses: actions/checkout@v3
       with:
@@ -113,35 +169,34 @@ jobs:
           *-pc-windows-msvc) STRIP="" ;;
         esac
         
-        ZY_BIN_PATH="target/${{ matrix.job.target }}/ci-build/zy${EXE_suffix}"
+        PROJECT_BIN_PATH="target/${{ matrix.job.target }}/ci-build/${{ env.PROJECT_NAME }}${EXE_suffix}"
         
         if [ -n "${STRIP}" ]; then
-          "${STRIP}" "${ZY_BIN_PATH}"
+          "${STRIP}" "${PROJECT_BIN_PATH}"
         fi
 
-        echo "ZY_BIN_PATH=${ZY_BIN_PATH}" >> $GITHUB_ENV
+        echo "PROJECT_BIN_PATH=${PROJECT_BIN_PATH}" >> $GITHUB_ENV
 
     - name: Build archive
       shell: bash
       run: |
-        # zy-v0.1.4-x86_64-unknown-linux-gnu
-        ZY_PKG_BASENAME="zy-${{ env.ZY_VERSION }}-${{ matrix.job.target }}"
-        mkdir "${ZY_PKG_BASENAME}"
+        PKG_BASENAME="${{ env.PROJECT_NAME }}-${{ env.PROJECT_VERSION }}-${{ matrix.job.target }}"
+        mkdir "${PKG_BASENAME}"
 
-        cp "${ZY_BIN_PATH}" "${ZY_PKG_BASENAME}/"
-        cp README.md CHANGELOG.md LICENSE-MIT LICENSE-APACHE "${ZY_PKG_BASENAME}/"
+        cp "${PROJECT_BIN_PATH}" "${PKG_BASENAME}/"
+        cp README.md CHANGELOG.md LICENSE-MIT LICENSE-APACHE "${PKG_BASENAME}/"
 
         case ${{ matrix.job.target }} in
           *-pc-windows-*)
-              ZY_PKG_PATH="${ZY_PKG_BASENAME}.zip"
-              7z -y a "${ZY_PKG_PATH}" "${ZY_PKG_BASENAME}"/* | tail -2
+              PKG_PATH="${PKG_BASENAME}.zip"
+              7z -y a "${PKG_PATH}" "${PKG_BASENAME}"/* | tail -2
             ;;
           *)
-              ZY_PKG_PATH="${ZY_PKG_BASENAME}.tar.gz"
-              tar czf "${ZY_PKG_PATH}" "${ZY_PKG_BASENAME}"/*
+              PKG_PATH="${PKG_BASENAME}.tar.gz"
+              tar czf "${PKG_PATH}" "${PKG_BASENAME}"/*
             ;;
         esac
-        echo "ZY_PKG_PATH=${ZY_PKG_PATH}" >> $GITHUB_ENV
+        echo "PKG_PATH=${PKG_PATH}" >> $GITHUB_ENV
 
     - name: Extract release notes
       id: extract-release-notes
@@ -155,9 +210,9 @@ jobs:
       run: |
         DEFAULT_RELEASE_NOTE="$(
           curl -v \
-            https://api.github.com/repos/miraclx/zy/releases/generate-notes \
+            https://api.github.com/repos/${{ github.repository }}/releases/generate-notes \
             -H 'Authorization: token ${{ github.token }}' \
-            -d '{"tag_name":"${{ env.ZY_VERSION }}","target_commitish":"${{ github.sha }}"}' \
+            -d '{"tag_name":"${{ env.PROJECT_VERSION }}","target_commitish":"${{ github.sha }}"}' \
           | jq .body
         )"
         echo "Default Release Note"
@@ -199,15 +254,16 @@ jobs:
     - name: Publish archives and packages
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: ${{ env.ZY_VERSION }}
-        files: ${{ env.ZY_PKG_PATH }}
-        token: ${{ secrets.GITHUB_TOKEN }}
+        tag_name: ${{ env.PROJECT_VERSION }}
+        prerelease: ${{ env.IS_PRERELEASE }}
         target_commitish: ${{ github.sha }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+        files: ${{ env.PKG_PATH }}
         body: |
           ## What's changed?
         
           ${{ steps.extract-release-notes.outputs.release_notes }}
 
-          **Full Changelog**: https://github.com/${{ github.repository }}/compare/${{ env.GIT_PREVIOUS_TAG }}...${{ env.ZY_VERSION }}
+          **Full Changelog**: https://github.com/${{ github.repository }}/compare/${{ env.GIT_PREVIOUS_TAG }}...${{ env.PROJECT_VERSION }}
 
           ${{ env.PRETTY_CONTRIBUTOR_LINE }}

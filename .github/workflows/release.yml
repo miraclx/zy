@@ -35,6 +35,7 @@ jobs:
       is_prerelease: ${{ env.IS_PRERELEASE }}
       has_released: ${{ env.HAS_RELEASED }}
       publish_crate: ${{ env.HAS_RELEASED == 'false' && github.event_name != 'workflow_dispatch' }}
+      git_previous_tag: ${{ env.GIT_PREVIOUS_TAG }}
     env:
       HAS_RELEASED: false
       PROJECT_VERSION: ${{ github.event.inputs.project-version }}
@@ -43,8 +44,18 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
+      with:
+        # might be a simple `fetch-tags: true` option soon, see https://github.com/actions/checkout/pull/579
+        fetch-depth: 0
 
-    - name: Get Project Name
+    - name: Check git environment
+      shell: bash
+      run: |
+        GIT_PREVIOUS_TAG="$(git describe --tags --abbrev=0 --match 'v[0-9]*.[0-9]*.[0-9]*')"
+        echo "GIT_PREVIOUS_TAG=${GIT_PREVIOUS_TAG}" >> $GITHUB_ENV
+        echo "Current latest git release tag is \"${GIT_PREVIOUS_TAG}\""
+
+    - name: Get project name
       run: |
         PROJECT_NAME=$(sed -n 's/^name = "\(.*\)"/\1/p' Cargo.toml | head -n1)
         echo "Project Name: $PROJECT_NAME"
@@ -56,7 +67,7 @@ jobs:
           exit 1
         fi
 
-    - name: Version Introspection
+    - name: Version introspection
       if: env.PROJECT_VERSION == ''
       run: |
         PROJECT_VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)
@@ -114,6 +125,7 @@ jobs:
       IS_PRERELEASE: ${{ needs.check.outputs.is_prerelease }}
       HAS_RELEASED: ${{ needs.check.outputs.has_released }}
       PUBLISH_CRATE: ${{ needs.check.outputs.publish_crate }}
+      GIT_PREVIOUS_TAG: ${{ needs.check.outputs.git_previous_tag }}
     strategy:
       fail-fast: false
       matrix:
@@ -133,9 +145,6 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
-      with:
-        # might be a simple `fetch-tags: true` option soon, see https://github.com/actions/checkout/pull/579
-        fetch-depth: 0
 
     - name: Install prerequisites
       shell: bash
@@ -161,13 +170,11 @@ jobs:
       id: strip
       shell: bash
       run: |
-        # Figure out suffix of binary
         EXE_suffix=""
         case ${{ matrix.job.target }} in
           *-pc-windows-*) EXE_suffix=".exe" ;;
         esac
 
-        # Figure out what strip tool to use if any
         STRIP="strip"
         case ${{ matrix.job.target }} in
           arm-unknown-linux-*) STRIP="arm-linux-gnueabihf-strip" ;;
@@ -241,13 +248,9 @@ jobs:
         echo
         echo "PRETTY_CONTRIBUTOR_LIST=${PRETTY_CONTRIBUTOR_LIST}" >> $GITHUB_ENV
 
-    - name: Check current latest tag
+    - name: Prepare release body
       shell: bash
       run: |
-        export GIT_PREVIOUS_TAG="$(git describe --tags --abbrev=0 --match 'v[0-9]*.[0-9]*.[0-9]*')"
-        echo "GIT_PREVIOUS_TAG=${GIT_PREVIOUS_TAG}" >> $GITHUB_ENV
-        echo "Current latest git release tag is \"${GIT_PREVIOUS_TAG}\""
-
         if [ -n "${PRETTY_CONTRIBUTOR_LIST}" ]; then
           PRETTY_CONTRIBUTOR_LINE=" \
             <sup> \
@@ -257,11 +260,13 @@ jobs:
           echo "PRETTY_CONTRIBUTOR_LINE=${PRETTY_CONTRIBUTOR_LINE}" >> $GITHUB_ENV
         fi
 
-        # if PUBLISH_CRATE is set to true, then we will publish the crate to crates.io
         if [[ "${{ env.PUBLISH_CRATE }}" == "true" ]]; then
           CRATE_LINE="**Crate Link**: https://crates.io/crates/${{ env.PROJECT_NAME }}/${{ env.RAW_PROJECT_VERSION }}"
           echo "CRATE_LINE=${CRATE_LINE}" >> $GITHUB_ENV
         fi
+
+        CHANGELOG_LINE="**Full Changelog**: https://github.com/${{ github.repository }}/compare/${{ env.GIT_PREVIOUS_TAG }}...${{ env.PROJECT_VERSION }}"
+        echo "CHANGELOG_LINE=${CHANGELOG_LINE}" >> $GITHUB_ENV
 
     - name: Publish archives and packages
       uses: softprops/action-gh-release@v1
@@ -278,6 +283,6 @@ jobs:
 
           ${{ env.CRATE_LINE }}
 
-          **Full Changelog**: https://github.com/${{ github.repository }}/compare/${{ env.GIT_PREVIOUS_TAG }}...${{ env.PROJECT_VERSION }}
+          ${{ env.CHANGELOG_LINE }}
 
           ${{ env.PRETTY_CONTRIBUTOR_LINE }}

@@ -185,7 +185,7 @@ jobs:
         files: ${{ env.ZY_PKG_PATH }}
         token: ${{ secrets.GITHUB_TOKEN }}
         body: |
-          ## What's changed in ${{ matrix.job.target }}?
+          ## What's changed?
         
           ${{ steps.extract-release-notes.outputs.release_notes }}
 

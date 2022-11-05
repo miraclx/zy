@@ -270,6 +270,7 @@ jobs:
     - name: Prepare release body
       shell: bash
       run: |
+        PRETTY_CONTRIBUTOR_LIST="@bulan-ci, @iTranscend and @miraclx"
         if [ -n "${PRETTY_CONTRIBUTOR_LIST}" ]; then
           PRETTY_CONTRIBUTOR_LINE=" \
             <sup> \

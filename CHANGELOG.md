@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.5] - 2022-11-05
+
 - Support for the `PORT` environment variable.
 - Human cache time input (e.g. `1h`, `1year 6months`).
 - `--anonymize` flag to hide the `Server` and `X-Powered-By` headers.

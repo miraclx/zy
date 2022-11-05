@@ -1,6 +1,6 @@
 [package]
 name = "zy"
-version = "0.1.8"
+version = "0.1.9"
 authors = ["Miraculous Owonubi <omiraculous@gmail.com>"]
 edition = "2021"
 rust-version = "1.59.0"

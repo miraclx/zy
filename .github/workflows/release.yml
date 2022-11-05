@@ -204,34 +204,17 @@ jobs:
         command: build
         args: --verbose --locked --profile ci-build --target=${{ matrix.target }}
 
-    - name: Strip debug information from executable
-      shell: bash
-      run: |
-        EXE_suffix=""
-        case ${{ matrix.target }} in
-          *-pc-windows-*) EXE_suffix=".exe" ;;
-        esac
-
-        STRIP="strip"
-        case ${{ matrix.target }} in
-          arm-unknown-linux-*) STRIP="arm-linux-gnueabihf-strip" ;;
-          aarch64-unknown-linux-gnu) STRIP="aarch64-linux-gnu-strip" ;;
-          *-pc-windows-msvc) STRIP="" ;;
-        esac
-
-        PROJECT_BIN_PATH="target/${{ matrix.target }}/ci-build/${{ env.PROJECT_NAME }}${EXE_suffix}"
-
-        # if [ -n "${STRIP}" ]; then
-        #   "${STRIP}" "${PROJECT_BIN_PATH}"
-        # fi
-
-        echo "PROJECT_BIN_PATH=${PROJECT_BIN_PATH}" >> $GITHUB_ENV
-
     - name: Build archive
       shell: bash
       run: |
         PKG_BASENAME="${{ env.PROJECT_NAME }}-${{ env.PROJECT_VERSION }}-${{ matrix.target }}"
         mkdir "${PKG_BASENAME}"
+
+        EXE_suffix=""
+        case ${{ matrix.target }} in
+          *-pc-windows-*) EXE_suffix=".exe" ;;
+        esac
+        PROJECT_BIN_PATH="target/${{ matrix.target }}/ci-build/${{ env.PROJECT_NAME }}${EXE_suffix}"
 
         cp "${PROJECT_BIN_PATH}" "${PKG_BASENAME}/"
         cp README.md CHANGELOG.md LICENSE-MIT LICENSE-APACHE "${PKG_BASENAME}/"

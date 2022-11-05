@@ -108,7 +108,7 @@ jobs:
         mkdir "$ZY_PKG_BASENAME"
 
         cp "${ZY_BIN_PATH}" "$ZY_PKG_BASENAME/"
-        cp README.md LICENSE-MIT LICENSE-APACHE "$ZY_PKG_BASENAME/"
+        cp README.md CHANGELOG.md LICENSE-MIT LICENSE-APACHE "$ZY_PKG_BASENAME/"
 
         case ${{ matrix.job.target }} in
           *-pc-windows-*)

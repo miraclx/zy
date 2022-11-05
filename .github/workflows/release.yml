@@ -22,8 +22,25 @@ env:
   ZY_VERSION: v0.1.5
     
 jobs:
-  build-release:
-    name: ${{ matrix.job.name }}
+  crate:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Install rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - uses: actions-rs/cargo@v1
+      with:
+        command: publish
+        args: --dry-run
+      env:
+        CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+  binary:
+    name: binary (${{ matrix.job.name }})
     runs-on: ${{ matrix.job.os }}
     strategy:
       fail-fast: false

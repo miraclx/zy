@@ -86,7 +86,7 @@ jobs:
   crate:
     runs-on: ubuntu-latest
     needs: check
-    if: ${{ needs.check.outputs.has_released }} == 'false' && ${{ github.event_name }} != 'workflow_dispatch'
+    if: ${{ needs.check.outputs.has_released == 'false' && github.event_name != 'workflow_dispatch' }}
 
     steps:
     - name: Checkout repository

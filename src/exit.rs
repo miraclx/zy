@@ -50,6 +50,7 @@ where
         #[cfg(windows)]
         {
             let mut sigterm = signal::windows::ctrl_break()?;
+            sigterm.recv().await;
             info!("[signal] Ctrl-Break received");
         }
 

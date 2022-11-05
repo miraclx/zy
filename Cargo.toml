@@ -1,6 +1,6 @@
 [package]
 name = "zy"
-version = "0.1.7"
+version = "0.1.8"
 authors = ["Miraculous Owonubi <omiraculous@gmail.com>"]
 edition = "2021"
 rust-version = "1.59.0"
@@ -23,6 +23,6 @@ tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
 
 [profile.ci-build]
 inherits = "release"
-# lto = "thin"
+lto = true
 strip = true
 codegen-units = 1

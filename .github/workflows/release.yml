@@ -139,7 +139,7 @@ jobs:
         DEFAULT_RELEASE_NOTE="$(
           gh api \
             /repos/${{ github.repository }}/releases/generate-notes \
-            -f tag_name='${{ env.ZY_VERSION }}' \
+            -f tag_name='${{ github.sha }}' \
             -q .body \
         )"
         echo "Default Release Note"

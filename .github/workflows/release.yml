@@ -169,6 +169,15 @@ jobs:
         echo "GIT_PREVIOUS_TAG=${GIT_PREVIOUS_TAG}" >> $GITHUB_ENV
         echo "Current latest git release tag is \"${GIT_PREVIOUS_TAG}\""
 
+        if [ -n "${PRETTY_CONTRIBUTOR_LIST}" ]; then
+          PRETTY_CONTRIBUTOR_LINE=" \
+            <sup> \
+              🎉  Thanks to ${{ env.PRETTY_CONTRIBUTOR_LIST }} for their contributions to this release. 🎉 \
+            </sup> \
+          "
+          echo "PRETTY_CONTRIBUTOR_LINE=${PRETTY_CONTRIBUTOR_LINE}" >> $GITHUB_ENV
+        fi
+
     - name: Publish archives and packages
       uses: softprops/action-gh-release@v1
       with:
@@ -181,6 +190,5 @@ jobs:
           ${{ steps.extract-release-notes.outputs.release_notes }}
 
           **Full Changelog**: https://github.com/${{ github.repository }}/compare/${{ env.GIT_PREVIOUS_TAG }}...${{ env.ZY_VERSION }}
-          <sup>
-          🎉  Thanks to ${{ env.PRETTY_CONTRIBUTOR_LIST }} for their contributions to this release. 🎉
-          </sup>
+
+          ${{ env.PRETTY_CONTRIBUTOR_LINE }}

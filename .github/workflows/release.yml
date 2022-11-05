@@ -110,7 +110,7 @@ jobs:
     env:
       PROJECT_NAME: ${{ needs.check.outputs.project_name }}
       PROJECT_VERSION: v${{ needs.check.outputs.project_version }}
-      RAW_PROJECT_VERSION: ${{ needs.check.outputs.raw_project_version }}
+      RAW_PROJECT_VERSION: ${{ needs.check.outputs.project_version }}
       IS_PRERELEASE: ${{ needs.check.outputs.is_prerelease }}
       HAS_RELEASED: ${{ needs.check.outputs.has_released }}
       PUBLISH_CRATE: ${{ needs.check.outputs.publish_crate }}
@@ -257,7 +257,8 @@ jobs:
           echo "PRETTY_CONTRIBUTOR_LINE=${PRETTY_CONTRIBUTOR_LINE}" >> $GITHUB_ENV
         fi
 
-        if [ "${{ env.PUBLISH_CRATE }}" = "true" ]; then
+        # if PUBLISH_CRATE is set to true, then we will publish the crate to crates.io
+        if [[ "${{ env.PUBLISH_CRATE }}" == "true" ]]; then
           CRATE_LINE="**Crate Link**: https://crates.io/crates/${{ env.PROJECT_NAME }}/${{ env.RAW_PROJECT_VERSION }}"
           echo "CRATE_LINE=${CRATE_LINE}" >> $GITHUB_ENV
         fi

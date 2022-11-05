@@ -185,6 +185,7 @@ jobs:
         tag_name: ${{ env.ZY_VERSION }}
         files: ${{ env.ZY_PKG_PATH }}
         token: ${{ secrets.GITHUB_TOKEN }}
+        target_commitish: ${{ github.sha }}
         body: |
           ## What's changed?
         

@@ -76,7 +76,7 @@ jobs:
       with:
         use-cross: ${{ matrix.use-cross }}
         command: clippy
-        args: -D clippy::all
+        args: -- -D clippy::all
 
   clippy:
     runs-on: ubuntu-latest

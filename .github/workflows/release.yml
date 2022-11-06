@@ -148,7 +148,7 @@ jobs:
       RAW_PROJECT_VERSION: ${{ needs.check.outputs.project_version }}
       IS_PRERELEASE: ${{ needs.check.outputs.is_prerelease }}
       GIT_PREVIOUS_TAG: ${{ needs.check.outputs.git_previous_tag }}
-      SHOULD_PUBLISH_CRATE: ${{ needs.check.outputs.should_publish_crate }}
+      WILL_PUBLISH_CRATE: ${{ needs.check.outputs.should_publish_crate }}
     strategy:
       fail-fast: false
       matrix:
@@ -276,7 +276,7 @@ jobs:
           echo "PRETTY_CONTRIBUTOR_LINE=${PRETTY_CONTRIBUTOR_LINE}" >> $GITHUB_ENV
         fi
 
-        if [[ "${{ env.SHOULD_PUBLISH_CRATE }}" == "true" ]]; then
+        if [[ "${{ env.WILL_PUBLISH_CRATE }}" == "true" ]]; then
           CRATE_LINE="**Crate Link**: https://crates.io/crates/${{ env.PROJECT_NAME }}/${{ env.RAW_PROJECT_VERSION }}"
           echo "CRATE_LINE=${CRATE_LINE}" >> $GITHUB_ENV
         fi

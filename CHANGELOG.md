@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.5] - 2022-11-05
+## [0.2.0] - 2022-11-06
 
 - Support for the `PORT` environment variable.
 - Human cache time input (e.g. `1h`, `1year 6months`).
@@ -21,5 +21,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > Release Page: <https://github.com/miraclx/zy/releases/tag/v0.1.1>
 
-[unreleased]: https://github.com/miraclx/zy/compare/v0.1.1...HEAD
+[unreleased]: https://github.com/miraclx/zy/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/miraclx/zy/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/miraclx/zy/releases/tag/v0.1.1

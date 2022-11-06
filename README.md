@@ -60,7 +60,7 @@ You can run `zy --help` to see all available options.
 
 ```console
 $ zy --help
-Zy 0.1.5
+Zy 0.2.0
 Minimal and blazing-fast file server.
 
 USAGE:

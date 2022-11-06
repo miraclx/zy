@@ -1,0 +1,302 @@
+# Derived from:
+#  - https://github.com/BurntSushi/ripgrep/blob/000015791742bb1280f1853adb714fdee1ba9f8e/.github/workflows/release.yml
+#  - https://github.com/near/near-cli-rs/blob/a8679a3603015f1d651f874fdf0feff0d7514131/.github/workflows/release.yml
+#  - https://github.com/sharkdp/bat/blob/7c847d84b0c3c97df6badfbb39d153ad93aec74e/.github/workflows/CICD.yml
+#  - https://github.com/near/near-jsonrpc-client-rs/blob/2a9cce4710bb87592baf5d7ca7015e3d474584e9/.github/workflows/ci.yml
+
+name: release
+
+on:
+  push:
+    branches:
+    - master
+  workflow_dispatch:
+    inputs:
+      project-version:
+        description: 'Version to release on GitHub'
+        required: true
+        type: string
+      is-pre-release:
+        description: 'Is this a pre-release?'
+        required: true
+        type: boolean
+
+env:
+  PROJECT_INDEX_URL: https://raw.githubusercontent.com/rust-lang/crates.io-index/master/2/zy
+  RUST_BACKTRACE: 1 # Emit backtraces on panics.
+  CARGO_PROFILE: slim # Use slim profile for release builds. Check the Cargo.toml for more context.
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      project_name: ${{ env.PROJECT_NAME }}
+      project_version: ${{ env.PROJECT_VERSION }}
+      is_prerelease: ${{ env.IS_PRERELEASE }}
+      git_previous_tag: ${{ env.GIT_PREVIOUS_TAG }}
+      should_publish_crate: ${{ env.SHOULD_PUBLISH_CRATE }}
+      should_release_binary: ${{ env.SHOULD_RELEASE_BINARY }}
+    env:
+      SHOULD_PUBLISH_CRATE: false
+      SHOULD_RELEASE_BINARY: true
+      PROJECT_VERSION: ${{ github.event.inputs.project-version }}
+      IS_PRERELEASE: ${{ github.event.inputs.is-pre-release }}
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        # might be a simple `fetch-tags: true` option soon, see https://github.com/actions/checkout/pull/579
+        fetch-depth: 0
+
+    - name: Check git environment
+      shell: bash
+      run: |
+        GIT_PREVIOUS_TAG="$(git describe --tags --abbrev=0 --match 'v[0-9]*.[0-9]*.[0-9]*')"
+        echo "GIT_PREVIOUS_TAG=${GIT_PREVIOUS_TAG}" >> $GITHUB_ENV
+        echo "Current latest git release tag is \"${GIT_PREVIOUS_TAG}\""
+
+    - name: Get project name
+      run: |
+        PROJECT_NAME=$(sed -n 's/^name = "\(.*\)"/\1/p' Cargo.toml | head -n1)
+        echo "Project Name: $PROJECT_NAME"
+
+        if [[ "${PROJECT_INDEX_URL}" == *"${PROJECT_NAME}" ]]; then
+          echo "PROJECT_NAME=${PROJECT_NAME}" >> $GITHUB_ENV
+        else
+          echo "Project name does not match the index URL [${PROJECT_INDEX_URL}]."
+          exit 1
+        fi
+
+    - name: Version introspection
+      run: |
+        if [[ -z "${PROJECT_VERSION}" ]]; then
+          PROJECT_VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)
+          echo "PROJECT_VERSION=${PROJECT_VERSION}" >> $GITHUB_ENV
+        fi
+        echo "Project version: ${PROJECT_VERSION}"
+
+        if [[ ! "${PROJECT_VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?$ ]]; then
+          echo "Project version is not a valid semver: ${PROJECT_VERSION}"
+          exit 1
+        fi
+
+        if [[ "${PROJECT_VERSION}" == *-* ]]; then
+          echo "Project version [${PROJECT_VERSION}] is a pre-release."
+          echo "IS_PRERELEASE=true" >> $GITHUB_ENV
+        else
+          echo "Project version [${PROJECT_VERSION}] is not a pre-release."
+          echo "IS_PRERELEASE=false" >> $GITHUB_ENV
+        fi
+
+    - name: Check if crates.io release exists
+      if: github.event_name != 'workflow_dispatch'
+      run: |
+        CRATE_VERSIONS=$(curl -s "${PROJECT_INDEX_URL}" | jq -r '.vers')
+        echo "Already published versions:\n${CRATE_VERSIONS}"
+
+        if echo "${CRATE_VERSIONS}" | grep -q "^${PROJECT_VERSION}$"; then
+          echo "Project version [${PROJECT_VERSION}] has already been released."
+          echo "SHOULD_PUBLISH_CRATE=false" >> $GITHUB_ENV
+        else
+          echo "Project version [${PROJECT_VERSION}] has not been released."
+          echo "SHOULD_PUBLISH_CRATE=true" >> $GITHUB_ENV
+        fi
+
+    - name: Check if GitHub release exists
+      run: |
+        RELEASED_VERSIONS=$(git tag -l "v[0-9]*.[0-9]*.[0-9]*")
+        echo "Already released versions:\n${RELEASED_VERSIONS}"
+
+        if echo "${RELEASED_VERSIONS}" | grep -q "^v${PROJECT_VERSION}$"; then
+          echo "Project version [${PROJECT_VERSION}] has already been released."
+          echo "SHOULD_RELEASE_BINARY=false" >> $GITHUB_ENV
+        else
+          echo "Project version [${PROJECT_VERSION}] has not been released."
+          echo "SHOULD_RELEASE_BINARY=true" >> $GITHUB_ENV
+        fi
+
+  crate:
+    runs-on: ubuntu-latest
+    needs: check
+    if: needs.check.outputs.should_publish_crate == 'true'
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Install rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - uses: Swatinem/rust-cache@v2
+
+    - uses: actions-rs/cargo@v1
+      with:
+        command: publish
+      env:
+        CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+  binary:
+    runs-on: ${{ matrix.os }}
+    needs: check
+    if: needs.check.outputs.should_release_binary == 'true'
+    env:
+      STEP_NAME: binary
+      PROJECT_NAME: ${{ needs.check.outputs.project_name }}
+      PROJECT_VERSION: v${{ needs.check.outputs.project_version }}
+      RAW_PROJECT_VERSION: ${{ needs.check.outputs.project_version }}
+      IS_PRERELEASE: ${{ needs.check.outputs.is_prerelease }}
+      GIT_PREVIOUS_TAG: ${{ needs.check.outputs.git_previous_tag }}
+      WILL_PUBLISH_CRATE: ${{ needs.check.outputs.should_publish_crate }}
+    strategy:
+      fail-fast: false
+      matrix:
+        name: [
+          # aaarch64
+          linux-aarch64-gnu, macos-aarch64,
+          # arm
+          linux-arm-gnu, linux-arm-musl,
+          # i686
+          win32-msvc, linux-i686-gnu, linux-i686-musl,
+          # x86_64
+          macos-x86_64, win64-gnu, win64-msvc, linux-x86_64-gnu, linux-x86_64-musl
+        ]
+        include:
+        - { name: 'linux-aarch64-gnu', target: aarch64-unknown-linux-gnu   , os: ubuntu-latest , use-cross: true }
+        - { name: 'macos-aarch64'    , target: aarch64-apple-darwin        , os: macos-latest  ,                 }
+        - { name: 'linux-arm-gnu'    , target: arm-unknown-linux-gnueabihf , os: ubuntu-latest , use-cross: true }
+        - { name: 'linux-arm-musl'   , target: arm-unknown-linux-musleabihf, os: ubuntu-latest , use-cross: true }
+        - { name: 'win32-msvc'       , target: i686-pc-windows-msvc        , os: windows-latest,                 }
+        - { name: 'linux-i686-gnu'   , target: i686-unknown-linux-gnu      , os: ubuntu-latest , use-cross: true }
+        - { name: 'linux-i686-musl'  , target: i686-unknown-linux-musl     , os: ubuntu-latest , use-cross: true }
+        - { name: 'macos-x86_64'     , target: x86_64-apple-darwin         , os: macos-latest  ,                 }
+        - { name: 'win64-gnu'        , target: x86_64-pc-windows-gnu       , os: windows-latest,                 }
+        - { name: 'win64-msvc'       , target: x86_64-pc-windows-msvc      , os: windows-latest,                 }
+        - { name: 'linux-x86_64-gnu' , target: x86_64-unknown-linux-gnu    , os: ubuntu-latest ,                 }
+        - { name: 'linux-x86_64-musl', target: x86_64-unknown-linux-musl   , os: ubuntu-latest , use-cross: true }
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Install prerequisites
+      shell: bash
+      run: |
+        case ${{ matrix.target }} in
+          arm-unknown-linux-*) sudo apt-get -y update ; sudo apt-get -y install gcc-arm-linux-gnueabihf ;;
+          aarch64-unknown-linux-gnu) sudo apt-get -y update ; sudo apt-get -y install gcc-aarch64-linux-gnu ;;
+        esac
+
+    - name: Install rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        target: ${{ matrix.target }}
+
+    - uses: Swatinem/rust-cache@v2
+      with:
+        key: ${{ matrix.target }}
+
+    - name: Build
+      uses: actions-rs/cargo@v1
+      with:
+        use-cross: ${{ matrix.use-cross }}
+        command: build
+        args: --verbose --locked --profile=${{ env.CARGO_PROFILE }} --target=${{ matrix.target }}
+
+    - name: Build archive
+      shell: bash
+      run: |
+        PKG_BASENAME="${{ env.PROJECT_NAME }}-${{ env.PROJECT_VERSION }}-${{ matrix.target }}"
+        mkdir "${PKG_BASENAME}"
+
+        EXE_suffix=""
+        case ${{ matrix.target }} in
+          *-pc-windows-*) EXE_suffix=".exe" ;;
+        esac
+        PROJECT_BIN_PATH="target/${{ matrix.target }}/${{ env.CARGO_PROFILE }}/${{ env.PROJECT_NAME }}${EXE_suffix}"
+
+        cp "${PROJECT_BIN_PATH}" "${PKG_BASENAME}/"
+        cp README.md CHANGELOG.md LICENSE-MIT LICENSE-APACHE "${PKG_BASENAME}/"
+
+        case ${{ matrix.target }} in
+          *-pc-windows-*)
+              PKG_PATH="${PKG_BASENAME}.zip"
+              7z -y a "${PKG_PATH}" "${PKG_BASENAME}"/* | tail -2
+            ;;
+          *)
+              PKG_PATH="${PKG_BASENAME}.tar.gz"
+              tar czf "${PKG_PATH}" "${PKG_BASENAME}"/*
+            ;;
+        esac
+        echo "PKG_PATH=${PKG_PATH}" >> $GITHUB_ENV
+
+    - name: Extract release notes
+      id: extract-release-notes
+      uses: ffurrer2/extract-release-notes@c24866884b7a0d2fd2095be2e406b6f260479da8
+
+    - name: Get contributors
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      shell: bash
+      run: |
+        DEFAULT_RELEASE_NOTE="$(
+          curl -v \
+            https://api.github.com/repos/${{ github.repository }}/releases/generate-notes \
+            -H 'Authorization: token ${{ github.token }}' \
+            -d '{"tag_name":"${{ env.PROJECT_VERSION }}","target_commitish":"${{ github.sha }}"}' \
+          | jq .body
+        )"
+        echo "Default Release Note"
+        echo "${DEFAULT_RELEASE_NOTE}"
+        echo
+        CONTRIBUTORS="$(
+          <<< "${DEFAULT_RELEASE_NOTE}" \
+          perl -ne 'print if s/.+ by (@[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38}) in https.+$/\1/i' \
+          | sort -u \
+        )"
+        echo "Contributors"
+        echo "${CONTRIBUTORS}"
+        echo
+        PRETTY_CONTRIBUTOR_LIST="$(
+          xargs <<< "${CONTRIBUTORS}" \
+          | sed 's/ /, /g;s/\(.*\), \(.*\)$/\1 and \2/' \
+        )"
+        echo "Prettified Contributors"
+        echo "${PRETTY_CONTRIBUTOR_LIST}"
+        echo
+        echo "PRETTY_CONTRIBUTOR_LIST=${PRETTY_CONTRIBUTOR_LIST}" >> $GITHUB_ENV
+
+    - name: Prepare release body
+      shell: bash
+      run: |
+        if [ -n "${PRETTY_CONTRIBUTOR_LIST}" ]; then
+          PRETTY_CONTRIBUTOR_LINE="<sup> 🎉  Thanks to ${PRETTY_CONTRIBUTOR_LIST} for their contributions to this release. 🎉 </sup>"
+          echo "PRETTY_CONTRIBUTOR_LINE=${PRETTY_CONTRIBUTOR_LINE}" >> $GITHUB_ENV
+        fi
+
+        if [[ "${WILL_PUBLISH_CRATE}" == "true" ]]; then
+          CRATE_LINE="**Crate Link**: https://crates.io/crates/${{ env.PROJECT_NAME }}/${{ env.RAW_PROJECT_VERSION }}"
+          echo "CRATE_LINE=${CRATE_LINE}" >> $GITHUB_ENV
+        fi
+
+        CHANGELOG_LINE="**Full Changelog**: https://github.com/${{ github.repository }}/compare/${{ env.GIT_PREVIOUS_TAG }}...${{ env.PROJECT_VERSION }}"
+        echo "CHANGELOG_LINE=${CHANGELOG_LINE}" >> $GITHUB_ENV
+
+    - name: Create release and upload artifacts
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ env.PROJECT_VERSION }}
+        prerelease: ${{ env.IS_PRERELEASE }}
+        target_commitish: ${{ github.sha }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+        files: ${{ env.PKG_PATH }}
+        body: |
+          ## What's changed?
+
+          ${{ steps.extract-release-notes.outputs.release_notes }}
+
+          ${{ env.CRATE_LINE }}
+
+          ${{ env.CHANGELOG_LINE }}
+
+          ${{ env.PRETTY_CONTRIBUTOR_LINE }}

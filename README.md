@@ -17,17 +17,21 @@
 
 ## Installation
 
-To install `zy`, you need Rust `1.59.0` or higher. You can then use `cargo` to build everything:
+You can download any of the pre-compiled binaries from the [releases page](https://github.com/miraclx/zy/releases).
+
+Or if you already have Rust installed, you can install it with `cargo`:
+
+> - Please, note that the minimum supported version of Rust for `zy` is `1.59.0`.
+> - Also, that the binary may be bigger than expected because it contains debug symbols. This is intentional. To remove debug symbols and therefore reduce the file size, you can instead run it with the `--profile slim` or simply just run `strip` on it.
 
 ```console
 cargo install zy
 ```
 
-You can also install the latest version (or a specific commit) of `zy` directly from GitHub.
+Alternatively, you can also build the latest version of `zy` directly from GitHub.
 
 ```console
-git clone https://github.com/miraclx/zy.git
-cargo install --path zy
+cargo install --git https://github.com/miraclx/zy.git
 ```
 
 ## Usage

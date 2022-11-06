@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+env:
+  RUSTFLAGS: -D warnings
+  RUST_BACKTRACE: short
+  CARGO_NET_RETRY: 10
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  check:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        rust-version: [1.59.0, stable]
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Install rust
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: ${{ matrix.rust-version }}
+        target: ${{ matrix.target }}
+
+    - uses: Swatinem/rust-cache@v2
+      with:
+        key: ${{ matrix.os }}-${{ matrix.rust-version }}
+
+    - name: Run cargo check
+      uses: actions-rs/cargo@v1
+      with:
+        command: check
+
+  clippy:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        rust-version: [1.59.0, stable]
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Install rust
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: ${{ matrix.rust-version }}
+        target: ${{ matrix.target }}
+        components: clippy
+
+    - uses: Swatinem/rust-cache@v2
+      with:
+        key: ${{ matrix.os }}-${{ matrix.rust-version }}
+
+    - name: Check if clippy is installed
+      shell: bash
+      run: |
+        rustup component list --installed | grep clippy
+        if [ $? -eq 0 ]; then
+          echo "CLIPPY_INSTALLED=true" >> $GITHUB_ENV
+        else
+          echo "CLIPPY_INSTALLED=false" >> $GITHUB_ENV
+        fi
+
+    - name: Run cargo clippy
+      if: env.CLIPPY_INSTALLED == 'true'
+      uses: actions-rs/cargo@v1
+      with:
+        command: clippy
+        args: -- -D clippy::all
+
+  fmt:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Run cargo fmt
+      run: cargo fmt --all -- --check

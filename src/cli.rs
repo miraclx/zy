@@ -83,7 +83,6 @@ fn parse_cache_time(s: &str) -> color_eyre::Result<u32> {
 #[derive(Debug, Parser)]
 #[clap(name = "Zy")]
 #[clap(about, version, setting = AppSettings::DeriveDisplayOrder)]
-#[clap(after_help = "The PORT environment variable is also supported.")]
 pub struct Args {
     /// Directory to serve
     #[clap(default_value = ".", parse(try_from_os_str = parse_canonicalize_dir))]

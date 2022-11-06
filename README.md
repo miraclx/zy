@@ -85,8 +85,6 @@ OPTIONS:
     -Z, --anonymize       Hide the `Server` and `X-Powered-By` headers [alias: `--anon`]
     -h, --help            Print help information
     -V, --version         Print version information
-
-The PORT environment variable is also supported.
 ```
 
 ## Credits

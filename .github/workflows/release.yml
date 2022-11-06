@@ -272,7 +272,7 @@ jobs:
       run: |
         PRETTY_CONTRIBUTOR_LIST="@bulan-ci, @iTranscend and @miraclx"
         if [ -n "${PRETTY_CONTRIBUTOR_LIST}" ]; then
-          PRETTY_CONTRIBUTOR_LINE="<sup> 🎉  Thanks to ${{ env.PRETTY_CONTRIBUTOR_LIST }} for their contributions to this release. 🎉 </sup>"
+          PRETTY_CONTRIBUTOR_LINE="<sup> 🎉  Thanks to ${PRETTY_CONTRIBUTOR_LIST} for their contributions to this release. 🎉 </sup>"
           echo "PRETTY_CONTRIBUTOR_LINE=${PRETTY_CONTRIBUTOR_LINE}" >> $GITHUB_ENV
         fi
 

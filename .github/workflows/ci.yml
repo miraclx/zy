@@ -61,6 +61,7 @@ jobs:
       with:
         toolchain: ${{ matrix.rust-version }}
         target: ${{ matrix.target }}
+        components: clippy
 
     - uses: Swatinem/rust-cache@v2
       with:
@@ -72,7 +73,17 @@ jobs:
         use-cross: ${{ matrix.use-cross }}
         command: check
 
+    - name: Check if clippy is installed
+      run: |
+        rustup component list --installed | grep clippy
+        if [ $? -eq 0 ]; then
+          echo "CLIPPY_INSTALLED=true" >> $GITHUB_ENV
+        else
+          echo "CLIPPY_INSTALLED=false" >> $GITHUB_ENV
+        fi
+
     - name: Clippy
+      if: env.CLIPPY_INSTALLED == 'true'
       uses: actions-rs/cargo@v1
       with:
         use-cross: ${{ matrix.use-cross }}

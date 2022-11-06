@@ -281,7 +281,7 @@ jobs:
         CHANGELOG_LINE="**Full Changelog**: https://github.com/${{ github.repository }}/compare/${{ env.GIT_PREVIOUS_TAG }}...${{ env.PROJECT_VERSION }}"
         echo "CHANGELOG_LINE=${CHANGELOG_LINE}" >> $GITHUB_ENV
 
-    - name: Publish archives and packages
+    - name: Create release and upload artifacts
       uses: softprops/action-gh-release@v1
       with:
         tag_name: ${{ env.PROJECT_VERSION }}

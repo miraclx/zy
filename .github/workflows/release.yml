@@ -34,7 +34,6 @@ jobs:
       should_release_binary: ${{ env.SHOULD_RELEASE_BINARY }}
     env:
       SHOULD_PUBLISH_CRATE: false
-      SHOULD_RELEASE_BINARY: true
       PROJECT_VERSION: ${{ github.event.inputs.project-version }}
 
     steps:

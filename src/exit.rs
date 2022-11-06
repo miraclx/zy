@@ -66,7 +66,14 @@ where
         }
 
         #[cfg(windows)]
-        std::future::pending::<()>().await;
+        {
+            match Some(1) {
+                Some(v) => return todo!(),
+                None => {}
+            };
+
+            std::future::pending::<()>().await;
+        }
 
         Result::<()>::Ok(())
     };

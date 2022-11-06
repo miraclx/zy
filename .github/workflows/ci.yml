@@ -17,7 +17,6 @@ jobs:
   check:
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
       matrix:
         rust-version: [1.59.0, stable]
         name: [

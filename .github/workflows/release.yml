@@ -270,13 +270,12 @@ jobs:
     - name: Prepare release body
       shell: bash
       run: |
-        PRETTY_CONTRIBUTOR_LIST="@bulan-ci, @iTranscend and @miraclx"
         if [ -n "${PRETTY_CONTRIBUTOR_LIST}" ]; then
           PRETTY_CONTRIBUTOR_LINE="<sup> 🎉  Thanks to ${PRETTY_CONTRIBUTOR_LIST} for their contributions to this release. 🎉 </sup>"
           echo "PRETTY_CONTRIBUTOR_LINE=${PRETTY_CONTRIBUTOR_LINE}" >> $GITHUB_ENV
         fi
 
-        if [[ "${{ env.WILL_PUBLISH_CRATE }}" == "true" ]]; then
+        if [[ "${WILL_PUBLISH_CRATE}" == "true" ]]; then
           CRATE_LINE="**Crate Link**: https://crates.io/crates/${{ env.PROJECT_NAME }}/${{ env.RAW_PROJECT_VERSION }}"
           echo "CRATE_LINE=${CRATE_LINE}" >> $GITHUB_ENV
         fi

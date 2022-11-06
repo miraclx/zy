@@ -15,7 +15,7 @@ env:
 
 jobs:
   check:
-    runs-on: ubuntu-20.04
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
@@ -57,8 +57,9 @@ jobs:
         esac
 
     - name: Install rust
-      uses: dtolnay/rust-toolchain@${{ matrix.rust-version }}
+      uses: dtolnay/rust-toolchain@master
       with:
+        toolchain: ${{ matrix.rust-version }}
         target: ${{ matrix.target }}
 
     - uses: Swatinem/rust-cache@v2

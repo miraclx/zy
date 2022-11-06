@@ -68,7 +68,7 @@ where
         #[cfg(windows)]
         {
             match Some(1) {
-                Some(v) => return todo!(),
+                Some(_v) => {}
                 None => {}
             };
 

@@ -24,6 +24,7 @@ on:
 env:
   PROJECT_INDEX_URL: https://raw.githubusercontent.com/rust-lang/crates.io-index/master/2/zy
   RUST_BACKTRACE: 1 # Emit backtraces on panics.
+  CARGO_PROFILE: slim # Use slim profile for release builds. Check the Cargo.toml for more context.
 
 jobs:
   check:
@@ -200,7 +201,7 @@ jobs:
       with:
         use-cross: ${{ matrix.use-cross }}
         command: build
-        args: --verbose --locked --profile ci-build --target=${{ matrix.target }}
+        args: --verbose --locked --profile=${{ env.CARGO_PROFILE }} --target=${{ matrix.target }}
 
     - name: Build archive
       shell: bash
@@ -212,7 +213,7 @@ jobs:
         case ${{ matrix.target }} in
           *-pc-windows-*) EXE_suffix=".exe" ;;
         esac
-        PROJECT_BIN_PATH="target/${{ matrix.target }}/ci-build/${{ env.PROJECT_NAME }}${EXE_suffix}"
+        PROJECT_BIN_PATH="target/${{ matrix.target }}/${{ env.CARGO_PROFILE }}/${{ env.PROJECT_NAME }}${EXE_suffix}"
 
         cp "${PROJECT_BIN_PATH}" "${PKG_BASENAME}/"
         cp README.md CHANGELOG.md LICENSE-MIT LICENSE-APACHE "${PKG_BASENAME}/"

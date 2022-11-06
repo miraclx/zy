@@ -65,13 +65,36 @@ jobs:
 
     - uses: Swatinem/rust-cache@v2
       with:
-        key: ${{ matrix.target }}
+        key: ${{ matrix.target }}-${{ matrix.rust-version }}
 
     - name: Check
       uses: actions-rs/cargo@v1
       with:
         use-cross: ${{ matrix.use-cross }}
         command: check
+
+  clippy:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        rust-version: [1.59.0, stable]
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Install rust
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: ${{ matrix.rust-version }}
+        target: ${{ matrix.target }}
+        components: clippy
+
+    - uses: Swatinem/rust-cache@v2
+      with:
+        key: ${{ matrix.os }}-${{ matrix.rust-version }}
 
     - name: Check if clippy is installed
       shell: bash
@@ -83,23 +106,12 @@ jobs:
           echo "CLIPPY_INSTALLED=false" >> $GITHUB_ENV
         fi
 
-    - name: Clippy
+    - name: Run cargo clippy
       if: env.CLIPPY_INSTALLED == 'true'
       uses: actions-rs/cargo@v1
       with:
-        use-cross: ${{ matrix.use-cross }}
         command: clippy
         args: -- -D clippy::all
-
-  clippy:
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
-
-    - name: Run clippy
-      run: cargo clippy -- -D clippy::all
 
   cargo-fmt:
     runs-on: ubuntu-latest

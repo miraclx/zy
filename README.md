@@ -2,6 +2,10 @@
 
 > Minimal and blazing-fast file server. For real, this time.
 
+[![Crates.io](https://img.shields.io/crates/v/zy?label=latest)](https://crates.io/crates/zy)
+[![CI](https://github.com/miraclx/zy/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/miraclx/zy/actions/workflows/ci.yml)
+[![MIT or Apache 2.0 Licensed](https://img.shields.io/crates/l/zy.svg)](#license)
+
 ## Features
 
 - [Single Page Application support](https://developer.mozilla.org/en-US/docs/Glossary/SPA)

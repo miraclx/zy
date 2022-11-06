@@ -16,10 +16,6 @@ on:
         description: 'Version to release on GitHub'
         required: true
         type: string
-      is-pre-release:
-        description: 'Is this a pre-release?'
-        required: true
-        type: boolean
 
 env:
   PROJECT_INDEX_URL: https://raw.githubusercontent.com/rust-lang/crates.io-index/master/2/zy
@@ -40,7 +36,6 @@ jobs:
       SHOULD_PUBLISH_CRATE: false
       SHOULD_RELEASE_BINARY: true
       PROJECT_VERSION: ${{ github.event.inputs.project-version }}
-      IS_PRERELEASE: ${{ github.event.inputs.is-pre-release }}
 
     steps:
     - name: Checkout repository
@@ -93,7 +88,7 @@ jobs:
       if: github.event_name != 'workflow_dispatch'
       run: |
         CRATE_VERSIONS=$(curl -s "${PROJECT_INDEX_URL}" | jq -r '.vers')
-        echo "Already published versions:\n${CRATE_VERSIONS}"
+        echo -e "Already published versions:\n${CRATE_VERSIONS}"
 
         if echo "${CRATE_VERSIONS}" | grep -q "^${PROJECT_VERSION}$"; then
           echo "Project version [${PROJECT_VERSION}] has already been released."
@@ -106,7 +101,7 @@ jobs:
     - name: Check if GitHub release exists
       run: |
         RELEASED_VERSIONS=$(git tag -l "v[0-9]*.[0-9]*.[0-9]*")
-        echo "Already released versions:\n${RELEASED_VERSIONS}"
+        echo -e "Already released versions:\n${RELEASED_VERSIONS}"
 
         if echo "${RELEASED_VERSIONS}" | grep -q "^v${PROJECT_VERSION}$"; then
           echo "Project version [${PROJECT_VERSION}] has already been released."

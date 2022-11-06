@@ -177,37 +177,40 @@ async fn index(
         );
     }
 
-    let mut res = serve(&req, &path, PathSource::Client, &state).unwrap_or_else(|| {
-        if state.args.spa {
-            let accepts_html = <header::Accept as header::Header>::parse(&req)
-                .map_or(false, |accept| {
-                    accept.iter().any(|mime| mime.item == "text/html")
-                });
-            if accepts_html {
-                if state.args.verbose {
-                    info!(target: "zy::serve", "SPA routing to {}", state.args.index);
+    let mut res = match serve(&req, &path, PathSource::Client, &state) {
+        Some(res) => res,
+        None => {
+            if state.args.spa {
+                let accepts_html = <header::Accept as header::Header>::parse(&req)
+                    .map_or(false, |accept| {
+                        accept.iter().any(|mime| mime.item == "text/html")
+                    });
+                if accepts_html {
+                    if state.args.verbose {
+                        info!(target: "zy::serve", "SPA routing to {}", state.args.index);
+                    }
+                    if let Some(res) = serve(&req, &state.args.index, PathSource::Server, &state) {
+                        return res;
+                    }
                 }
-                match serve(&req, &state.args.index, PathSource::Server, &state) {
-                    Some(res) => return res,
-                    None => {}
+            }
+            if state.args.verbose {
+                info!(target: "zy::serve", "not found, serving {}", state.args.not_found);
+            }
+            match serve(&req, &state.args.not_found, PathSource::Server, &state) {
+                Some(mut resp) => {
+                    *resp.status_mut() = StatusCode::NOT_FOUND;
+                    resp
+                }
+                None => {
+                    if state.args.verbose {
+                        info!(target: "zy::serve", "{} not found, omitting response body", state.args.not_found);
+                    }
+                    HttpResponse::build(StatusCode::NOT_FOUND).finish()
                 }
             }
         }
-        if state.args.verbose {
-            info!(target: "zy::serve", "not found, serving {}", state.args.not_found);
-        }
-        match serve(&req, &state.args.not_found, PathSource::Server, &state) {
-            Some(mut resp) => {
-                *resp.status_mut() = StatusCode::NOT_FOUND;
-                resp
-            }
-            None => {
-                if state.args.verbose {
-                    info!(target: "zy::serve", "{} not found, omitting response body", state.args.not_found);
-                }
-                HttpResponse::build(StatusCode::NOT_FOUND).finish()},
-        }
-    });
+    };
 
     if !state.args.no_cors {
         res.headers_mut().insert(

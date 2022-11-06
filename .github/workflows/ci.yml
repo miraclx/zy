@@ -74,6 +74,7 @@ jobs:
         command: check
 
     - name: Check if clippy is installed
+      shell: bash
       run: |
         rustup component list --installed | grep clippy
         if [ $? -eq 0 ]; then

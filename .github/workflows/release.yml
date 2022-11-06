@@ -9,7 +9,8 @@ name: release
 on:
   push:
     branches:
-    - master
+    # - master
+    - ci/release-check
   workflow_dispatch:
     inputs:
       project-version:
@@ -133,6 +134,7 @@ jobs:
     - uses: actions-rs/cargo@v1
       with:
         command: publish
+        args: --dry-run
       env:
         CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
